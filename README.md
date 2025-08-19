@@ -123,6 +123,15 @@ cd scripts
 bash run_demo.sh
 ```
 
+## 🎥 WebWatcher Demos
+
+We present a demo of WebWatcher, illustrating its ability to leverage multiple tools effectively to tackle highly challenging VQA problems.
+
+<div align="center">
+    <h3>WebWatcher</h3>
+    <video src= "https://github.com/user-attachments/assets/5b0e0299-3bff-481c-bd87-1bafd142673c"/>
+</div>
+
 ## 🎥 WebSailor Demos
 
 We provide demos for BrowseComp-en, BrowseComp-zh and Daily Use. Our model can complete highly difficult and uncertain tasks requiring massive information acquisition and complex reasoning.
@@ -171,6 +180,13 @@ The content of this project itself is licensed under [LICENSE](LICENSE).
 If this work is helpful, please kindly cite as:
 
 ```bigquery
+@article{geng2025webwatcher,
+  title={WebWatcher: Breaking New Frontiers of Vision-Language Deep Research Agent},
+  author={Geng, Xinyu and Xia, Peng and Zhang, Zhen and Wang, Xinyu and Wang, Qiuchen and Ding, Ruixue and Wang, Chenxi and Wu, Jialong and Zhao, Yida and Li, Kuan and others},
+  journal={arXiv preprint arXiv:2508.05748},
+  year={2025}
+}
+
 @article{tao2025webshaper,
   title={WebShaper: Agentically Data Synthesizing via Information-Seeking Formalization},
   author={Zhengwei Tao and Jialong Wu and Wenbiao Yin and Junkai Zhang and Baixuan Li and Haiyang Shen and Kuan Li and Liwen Zhang and Xinyu Wang and Yong Jiang and Pengjun Xie and Fei Huang and Jingren Zhou},
