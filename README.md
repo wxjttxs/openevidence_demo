@@ -41,6 +41,7 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 
 ## 📰 News and Updates
 
+- `2025.08.26` 🔥🔥🔥**WebSailor-32B** is [released](https://huggingface.co/Alibaba-NLP/WebSailor-32B).
 - `2025.08.07` 🔥🔥🔥We release **WebWatcher**: Breaking New Frontier of Vision-Language Deep Research Agent.
 - `2025.08.06` 🔥🔥🔥**WebSailor-7B** is [released](https://huggingface.co/Alibaba-NLP/WebSailor-7B).
 - `2025.07.22` 🔥🔥🔥We release **WebShaper**: Agentically Data Synthesizing via Information-Seeking Formalization.
@@ -50,6 +51,14 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 - `2025.05.29` 🔥🔥🔥We release **WebDancer**, a native agentic search model towards autonomous information seeking agency and _Deep Research_-like model.
 - `2025.05.15` **WebWalker** is accepted by ACL 2025 main conference.
 - `2025.01.14` We release **WebWalker**, a benchmark for LLMs in web traversal and a multi-agent framework for information seeking.
+
+| Model | Release Date | Max Length | Tool List |
+|-------|--------------|------------|-----------|
+| [WebDancer-QwQ-32B](https://huggingface.co/Alibaba-NLP/WebDancer-32B) | 2025.06.23 | 32K | Search / Visit |
+| [WebSailor-3B](https://huggingface.co/Alibaba-NLP/WebSailor-3B) | 2025.07.11 | 32K | Search / Visit |
+| [WebSailor-7B](https://huggingface.co/Alibaba-NLP/WebSailor-7B) | 2025.08.06 | 32K | Search / Visit |
+| [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B) | 2025.08.26 | 32K | Search / Visit |
+
 
 ## 💎 Results Showcase
 
