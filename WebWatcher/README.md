@@ -7,12 +7,24 @@
 ![version](https://img.shields.io/badge/version-1.0.0-blue)
 
 ## 🥇 Introduction
-
 In this paper, we introduce **WebWatcher**, a multimodal agent for deep research that possesses enhanced visual-language reasoning capabilities. Our work presents a unified framework that combines complex vision-language reasoning with multi-tool interaction.
+
+<p align="center">
+  <img src="./assets/webwatcher_main.png" alt="logo" width="80%"/>
+</p>
+
 
 Key features of our approach include:
 
+<p align="center">
+  <img src="./assets/distribution_level.png" alt="logo" width="80%"/>
+</p>
+
 - BrowseComp-VL Benchmark: We propose a new benchmark, BrowseComp-VL, to evaluate the capabilities of multimodal agents. This challenging dataset is designed for in-depth multimodal reasoning and strategic planning, mirroring the complexity of BrowseComp but extending it into the visual domain. It emphasizes tasks that require both visual perception and advanced information-gathering abilities.
+
+<p align="center">
+  <img src="./assets/data_pipelines.png" alt="logo" width="80%"/>
+</p>
 
 - Automated Trajectory Generation: To provide robust tool-use capabilities, we developed an automated pipeline to generate high-quality, multi-step reasoning trajectories. These trajectories, which are grounded in actual tool-use behavior and reflect procedural decision-making, are used for efficient cold-start training and further optimization via reinforcement learning. The agent is equipped with several tools, including Web Image Search, Web Text Search, Webpage Visit, Code Interpreter, and an internal OCR tool.
 
