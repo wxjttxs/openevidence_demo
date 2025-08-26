@@ -1,7 +1,7 @@
 # WebWatcher: Breaking New Frontier of Vision-Language Deep Research Agent
 
 <p align="center">
-  <img src="./assets/webwatcher_logo.png" alt="logo" width="60%"/>
+  <img src="./assets/webwatcher_logo.png" alt="logo" width="30%"/>
 </p>
 
 ![version](https://img.shields.io/badge/version-1.0.0-blue)
