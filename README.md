@@ -9,17 +9,8 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 </p>
 
 <p align="center">
-🤗 <a href="https://huggingface.co/datasets/Alibaba-NLP/WebShaper" target="_blank">WebShaperQA</a> ｜
-<img src="./assets/tongyi.png" width="14px" style="display:inline;"> <a href="https://modelscope.cn/datasets/iic/WebShaper" target="_blank">WebShaperQA</a> ｜
-🤗 <a href="https://huggingface.co/Alibaba-NLP/WebSailor-7B" target="_blank">WebSailor-7B</a> ｜
-<img src="./assets/tongyi.png" width="14px" style="display:inline;"> <a href="https://modelscope.cn/models/iic/WebSailor-7B" target="_blank">ModelScope WebSailor-7B</a> |
-</p>
-
-<p align="center">
-🤗 <a href="https://huggingface.co/Alibaba-NLP/WebDancer-32B" target="_blank">WebDancer-QwQ-32B</a>  | 
-<img src="./assets/tongyi.png" width="14px" style="display:inline;"> <a href="https://modelscope.cn/models/iic/WebDancer-32B" target="_blank">ModelScope WebDancer-QwQ-32B</a> |
-🤗 <a href="https://huggingface.co/datasets/callanwu/WebWalkerQA" target="_blank">WebWalkerQA</a>
-
+🤗 <a href="https://huggingface.co/collections/Alibaba-NLP/webagent-6878a9947443234bc6cbf9f4" target="_blank">HuggingFace WebAgent</a> ｜
+<img src="./assets/tongyi.png" width="14px" style="display:inline;"> <a href="https://modelscope.cn/collections/WebAgent-3f21405837f646" target="_blank">ModelScope WebAgent</a> ｜
 </p>
 
 <div align="center">
@@ -41,9 +32,9 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 
 ## 📰 News and Updates
 
-- `2025.08.26` 🔥🔥🔥**WebSailor-32B** is [released](https://huggingface.co/Alibaba-NLP/WebSailor-32B).
+- `2025.08.28` 🔥🔥🔥[**WebShaper-32B**](https://huggingface.co/Alibaba-NLP/WebShaper-32B) is released.
+- `2025.08.26` 🔥🔥🔥[**WebSailor-32B**](https://huggingface.co/Alibaba-NLP/WebSailor-32B) and [**WebSailor-7B**](https://huggingface.co/Alibaba-NLP/WebSailor-7B) is released.
 - `2025.08.07` 🔥🔥🔥We release **WebWatcher**: Breaking New Frontier of Vision-Language Deep Research Agent.
-- `2025.08.06` 🔥🔥🔥**WebSailor-7B** is [released](https://huggingface.co/Alibaba-NLP/WebSailor-7B).
 - `2025.07.22` 🔥🔥🔥We release **WebShaper**: Agentically Data Synthesizing via Information-Seeking Formalization.
 - `2025.07.11` 🔥🔥🔥**WebSailor-3B** is [released](https://huggingface.co/Alibaba-NLP/WebSailor-3B). You can deploy it with one click using <img src="./assets/aliyun.png" width="14px" style="display:inline;"> [Alibaba Cloud's FunctionAI](https://functionai.console.aliyun.com/template-detail?template=Alibaba-NLP-WebSailor-3B) in ten minutes!
 - `2025.07.03` 🔥🔥🔥We release **WebSailor**, an agentic search model specialized in performing extremely complex information seeking tasks, achieving open-source SOTA on some of the most difficult browsing benchmarks. **WebSailor** topped the HuggingFace [daily papers](https://huggingface.co/papers/2507.02592).
@@ -53,11 +44,15 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 - `2025.01.14` We release **WebWalker**, a benchmark for LLMs in web traversal and a multi-agent framework for information seeking.
 
 | Model | Release Date | Max Length | Tool List |
-|-------|--------------|------------|-----------|
-| [WebDancer-QwQ-32B](https://huggingface.co/Alibaba-NLP/WebDancer-32B) | 2025.06.23 | 32K | Search / Visit |
+|:-------:|:--------------:|:------------:|:-----------:|
+| [WebDancer-32B](https://huggingface.co/Alibaba-NLP/WebDancer-32B) | 2025.06.23 | 32K | Search / Visit |
 | [WebSailor-3B](https://huggingface.co/Alibaba-NLP/WebSailor-3B) | 2025.07.11 | 32K | Search / Visit |
 | [WebSailor-7B](https://huggingface.co/Alibaba-NLP/WebSailor-7B) | 2025.08.06 | 32K | Search / Visit |
 | [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B) | 2025.08.26 | 32K | Search / Visit |
+| [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B) | 2025.08.26 | 32K | Search / Visit |
+| [WebWatcher-7B](https://huggingface.co/Alibaba-NLP/WebWatcher-7B) | 2025.08.27 | 32K | Search / Visit / ImageSearch / CodeInterpreter |
+| [WebWatcher-32B](https://huggingface.co/Alibaba-NLP/WebWatcher-32B) | 2025.08.27 | 32K | Search / Visit / ImageSearch / CodeInterpreter |
+| [WebShaper-32B](https://huggingface.co/Alibaba-NLP/WebShaper-32B) | 2025.08.28 | 32K | Search / Visit |
 
 
 ## 💎 Results Showcase
