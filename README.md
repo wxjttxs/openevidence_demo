@@ -49,7 +49,6 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 | [WebSailor-3B](https://huggingface.co/Alibaba-NLP/WebSailor-3B) | 2025.07.11 | 32K | Search / Visit |
 | [WebSailor-7B](https://huggingface.co/Alibaba-NLP/WebSailor-7B) | 2025.08.06 | 32K | Search / Visit |
 | [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B) | 2025.08.26 | 32K | Search / Visit |
-| [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B) | 2025.08.26 | 32K | Search / Visit |
 | [WebWatcher-7B](https://huggingface.co/Alibaba-NLP/WebWatcher-7B) | 2025.08.27 | 32K | Search / Visit / ImageSearch / CodeInterpreter |
 | [WebWatcher-32B](https://huggingface.co/Alibaba-NLP/WebWatcher-32B) | 2025.08.27 | 32K | Search / Visit / ImageSearch / CodeInterpreter |
 | [WebShaper-32B](https://huggingface.co/Alibaba-NLP/WebShaper-32B) | 2025.08.28 | 32K | Search / Visit |
