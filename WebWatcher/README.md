@@ -4,7 +4,7 @@
   <img src="./assets/webwatcher_logo.png" alt="logo" width="30%"/>
 </p>
 
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+
 
 ## 🥇 Introduction
 In this paper, we introduce **WebWatcher**, a multimodal agent for deep research that possesses enhanced visual-language reasoning capabilities. Our work presents a unified framework that combines complex vision-language reasoning with multi-tool interaction.
