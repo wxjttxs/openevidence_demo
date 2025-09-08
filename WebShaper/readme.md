@@ -4,7 +4,7 @@
   <img src="./assets/webshaper.png" alt="logo" width="40%"/>
 </p>
 
-![version](https://img.shields.io/badge/version-1.0.0-blue)<a href="https://arxiv.org/pdf/xxx">![arXiv](https://img.shields.io/badge/arXiv-xxx-b31b1b)</a>
+<a href="https://arxiv.org/pdf/2507.15061">![arXiv](https://img.shields.io/badge/arXiv-2507.15061-b31b1b)</a>
 
 ## 💡 Introduction
 
