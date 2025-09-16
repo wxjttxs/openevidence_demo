@@ -3,19 +3,6 @@
 
 Towards General Agentic Intelligence via Environment Scaling</h1>
 
-## Table of Contents
-
-- 🌟[Overview](#overview)
-- 🔧[Installation](#installation)
-- 📚[World Knowledge Build](#world-knowledge-build)
-- 📉[Model Training](#model-training)
-- 🧐[Evaluation](#evaluation)
-- 🚩[Citation](#citation)
-
----
-
-
-
 
 ## 🌟Overview
 
