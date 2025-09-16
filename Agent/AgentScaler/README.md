@@ -3,19 +3,6 @@
 
 Towards General Agentic Intelligence via Environment Scaling</h1>
 
-<p align="center">
-  <a href="https://arxiv.org/abs/2405.14205">📄arXiv</a> •
-  <a href="https://www.zjukg.org/project/WKM/">🌐Web</a> •
-    <a href="https://x.com/omarsar0/status/1793851075411296761">𝕏 Blog</a>
-    •
-    <a href="https://huggingface.co/collections/zjunlp/wkm-6684c611102213b6d8104f84">🤗 HF</a> •
-    <a href="https://notebooklm.google.com/notebook/a3f13ad1-1bc9-4ab2-ace6-9ae4276bc970/audio">🎧NotebookLM Audio</a>
-
-
-  
-</p>
-
-
 
 
 [![Awesome](https://awesome.re/badge.svg)](https://github.com/zjunlp/WKM) 
