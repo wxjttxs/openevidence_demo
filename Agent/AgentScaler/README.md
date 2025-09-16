@@ -3,12 +3,6 @@
 
 Towards General Agentic Intelligence via Environment Scaling</h1>
 
-
-
-[![Awesome](https://awesome.re/badge.svg)](https://github.com/zjunlp/WKM) 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-![](https://img.shields.io/github/last-commit/zjunlp/WKM?color=green) 
-
 ## Table of Contents
 
 - 🌟[Overview](#overview)
