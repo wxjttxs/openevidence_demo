@@ -25,14 +25,14 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 > 💥 💥 💥 Stay tuned for more updates! We are working on building native agentic model based on the Browser and more open-domain environments!
 
 - [**WebWatcher**](WebWatcher) (Preprint 2025) - WebWatcher: Breaking New Frontier of Vision-Language Deep Research Agent
-- [**WebShaper**](WebShaper) (Preprint 2025) - WebShaper: Agentically Data Synthesizing via Information-Seeking
-  Formalization
+- [**WebShaper**](WebShaper) (Preprint 2025) - WebShaper: Agentically Data Synthesizing via Information-Seeking Formalization
 - [**WebSailor**](WebSailor) (Preprint 2025) - WebSailor: Navigating Super-human Reasoning for Web Agent
 - [**WebDancer**](WebDancer) (Preprint 2025) - WebDancer: Towards Autonomous Information Seeking Agency
 - [**WebWalker**](WebWalker) (ACL 2025) - WebWalker: Benchmarking LLMs in Web Traversal
 
 ## 📰 News and Updates
 
+- `2025.09.07` 🔥🔥🔥[**WebWatcher-7B**](https://huggingface.co/Alibaba-NLP/WebWatcher-7B), [**WebWatcher-32B**](https://huggingface.co/Alibaba-NLP/WebWatcher-32B) and [BrowseComp-VL](https://github.com/Alibaba-NLP/WebAgent/tree/main/WebWatcher/benchmark) benchmark are released.
 - `2025.08.28` 🔥🔥🔥[**WebShaper-32B**](https://huggingface.co/Alibaba-NLP/WebShaper-32B) is released.
 - `2025.08.26` 🔥🔥🔥[**WebSailor-32B**](https://huggingface.co/Alibaba-NLP/WebSailor-32B) and [**WebSailor-7B**](https://huggingface.co/Alibaba-NLP/WebSailor-7B) is released.
 - `2025.08.07` 🔥🔥🔥We release **WebWatcher**: Breaking New Frontier of Vision-Language Deep Research Agent.
@@ -50,8 +50,8 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 |   [WebSailor-3B](https://huggingface.co/Alibaba-NLP/WebSailor-3B)   |  2025.07.11  |    32K     |                 Search / Visit                 |
 |   [WebSailor-7B](https://huggingface.co/Alibaba-NLP/WebSailor-7B)   |  2025.08.06  |    32K     |                 Search / Visit                 |
 |  [WebSailor-32B](https://huggingface.co/Alibaba-NLP/WebSailor-32B)  |  2025.08.26  |    32K     |                 Search / Visit                 |
-|  [WebWatcher-7B](https://huggingface.co/Alibaba-NLP/WebWatcher-7B)  |  2025.08.27  |    32K     | Search / Visit / ImageSearch / CodeInterpreter |
-| [WebWatcher-32B](https://huggingface.co/Alibaba-NLP/WebWatcher-32B) |  2025.08.27  |    32K     | Search / Visit / ImageSearch / CodeInterpreter |
+|  [WebWatcher-7B](https://huggingface.co/Alibaba-NLP/WebWatcher-7B)  |  2025.09.01  |    32K     | Search / Visit / ImageSearch / CodeInterpreter |
+| [WebWatcher-32B](https://huggingface.co/Alibaba-NLP/WebWatcher-32B) |  2025.09.07  |    32K     | Search / Visit / ImageSearch / CodeInterpreter |
 |  [WebShaper-32B](https://huggingface.co/Alibaba-NLP/WebShaper-32B)  |  2025.08.28  |    32K     |                 Search / Visit                 |
 
 ## 💎 Results Showcase
@@ -67,6 +67,14 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
   <img src="assets/webagent-bc.png" width="800%" height="400%" />
 </p>
 </div>
+
+## 🕵️ Features for WebWatcher
+
+- A **multimodal** deep research agent, **WebWatcher**, designed to tackle complex information-seeking problems by integrating vision-language reasoning with a sophisticated multi-tool interaction framework.
+- Introduces [**`BrowseComp-VL`**](https://github.com/Alibaba-NLP/WebAgent/tree/main/WebWatcher/benchmark), a challenging new benchmark that requires complex, multi-step information retrieval involving both visual and textual data.
+- Features a novel data-centric pipeline that automatically generates **high-quality synthetic multimodal trajectories** for efficient cold start training and further enhances generalization through the GRPO RL algorithm.
+- WebWatcher-32B establishes strong performance across four challenging benchmarks, achieving Pass@1 scores of **58.7** on LiveVQA, **55.3** on MMSearch, **27.0** on BrowseComp-VL, and **13.6** on HLE-VL.
+- The checkpoints are released at [**`WebWatcher-7B`**](https://huggingface.co/Alibaba-NLP/WebWatcher-7B) and [**`WebWatcher-32B`**](https://huggingface.co/Alibaba-NLP/WebWatcher-32B).
 
 ## 💡 Features for WebShaper
 
@@ -233,7 +241,7 @@ If this work is helpful, please kindly cite as:
 
 📚 **Research Area**：Web Agent, Search Agent, Agent RL, MultiAgent RL, Agentic RAG
 
-☎️ **Contact**：[yongjiang.jy@alibaba-inc.com]()
+☎️ **Contact**：[yongjiang.jy@alibaba-inc.com](mailto:yongjiang.jy@alibaba-inc.com)
 
 ## Contact Information
 
