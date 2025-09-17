@@ -1,6 +1,6 @@
-# <img src="assets/logo.png" alt="ACT Logo" width="35" style="vertical-align: middle; margin-right: 10px;"> Scaling Deep Research Agents via Continual Pre-training 🚀
+# <img src="assets/logo.png" alt="ACT Logo" width="35" style="vertical-align: middle; margin-right: 10px;"> Scaling Agents via Continual Pre-training 🚀
 
-This work is **the first** to bring Agentic Continual Pretraining (**Agentic CPT**) into the training pipeline of Deep Research Agents, resulting in the powerful agentic model ACT-30B-A3B ⚡️.
+This work is **the first** to bring Agentic Continual Pretraining (**Agentic CPT**) into the training pipeline of Deep Research Agents, resulting in the powerful agentic model AgentFounder-30B ⚡️.
 
 <p align="center">
   <img src="assets/main_performance.png" alt="Main Results" width="85%">
@@ -31,10 +31,10 @@ We transform continuously updated data streams into an open-world memory, enabli
 Building on the strong correlation between initial planning and trajectory's accuracy, we generate a large number of reasoning–action data from diverse QA instances to strengthen the agent’s planning capability. 
 
 
-### 💡 FAS — Answer Action Synthesis 
+### 💡 FAS — Reasoning Action Synthesis 
 By combining questions with their knowledge sources, we emulate the process of deriving final answers through logical inference under fully informed conditions, strengthening the agent’s reasoning capability.
 
-### 🔗 HAS — Multi-Decision Answer Action Synthesis 
+### 🔗 HAS — Decision-Making Action Synthesis 
 We reformulate the agent trajectories as **multi-step decision-making processes**, fully exploring the **reasoning–action space** at each step. HAS expands the agent’s capacity to explore the action–answer space while enhancing its decision-making abilities.
 
 <p align="center">
@@ -51,8 +51,8 @@ We reformulate the agent trajectories as **multi-step decision-making processes*
       <th style="border:1px solid #ddd;padding:8px;background:#fafafa;text-align:left;">Backbone</th>
       <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">BrowseComp-en</th>
       <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">BrowseComp-zh</th>
-      <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">GAIA</th>
-      <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">Xbench-DeepSearch</th>
+      <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">GAIA(text)</th>
+      <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">xbench-DeepSearch</th>
       <th style="border:1px solid #ddd;padding:8px;background:#fafafa;">WebwalkerQA</th>
     </tr>
   </thead>
@@ -234,12 +234,12 @@ We reformulate the agent trajectories as **multi-step decision-making processes*
       </td>
     </tr>
     <tr style="background:#fffaf0;">
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">ACT-30B-A3B</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;text-align:center;">45.1</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">49.8</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">AgentFounder-30B</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;text-align:center;">40.0</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">43.3</td>
       <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">72.8</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">74.0</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">73.8</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">73.0</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700">71.9</td>
     </tr>
   </tbody>
 </table>
@@ -419,11 +419,11 @@ We reformulate the agent trajectories as **multi-step decision-making processes*
       </td>
     </tr>
     <tr style="background:#fffaf0;">
-      <td style="border:1px solid #ddd;padding:6px;font-weight:700;">ACT-30B-A3B</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">32.0</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">49.0</td>
+      <td style="border:1px solid #ddd;padding:6px;font-weight:700;">AgentFounder-30B</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">31.5</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">48.9</td>
       <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">89.6</td>
-      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">46.9</td>
+      <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">43.9</td>
       <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:700;">75.3</td>
     </tr>
   </tbody>
@@ -435,7 +435,7 @@ We reformulate the agent trajectories as **multi-step decision-making processes*
   <img src="assets/data_scaling.png" alt="Scaling with Training Data" width="85%">
 </p>
 
-We are excited to observe that as the training data increases, ACT-30B-A3B achieves consistent improvements in average performance across multiple benchmarks, exhibiting characteristics of a potential scaling law.  
+We are excited to observe that as the training data increases, AgentFounder-30B achieves consistent improvements in average performance across multiple benchmarks, exhibiting characteristics of a potential scaling law.  
 
 
 ## 📚 Citation
@@ -443,5 +443,10 @@ We are excited to observe that as the training data increases, ACT-30B-A3B achie
 If you find our work inspiring, please kindly cite as:
 
 ```bibtex
-% Comming soon.
+@article{su2025agentfounder,
+      title={Scaling Agents via Continual Pre-training}, 
+      author={Liangcai Su and Zhen Zhang and Guangyu Li and Zhuo Chen and Chenxi Wang and Maojia Song and Xinyu Wang and Kuan Li and Jialong Wu and Xuanzhong Chen and Zile Qiao and Zhongwang Zhang and Huifeng Yin and Shihao Cai and Runnan Fang and Zhengwei Tao and Wenbiao Yin and Chenxiong Qian and Yong Jiang and Pengjun Xie and Fei Huang and Jingren Zhou},
+      year={2025},
+      journal={arXiv preprint arXiv:2509.13310},
+}
 ```
