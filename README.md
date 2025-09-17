@@ -128,6 +128,27 @@ Tongyi DeepResearch also has an extensive deep research agent family. You can fi
 [10] [Scaling Agents via Continual Pre-training](https://arxiv.org/pdf/2509.13310)<br>
 [11] [Towards General Agentic Intelligence via Environment Scaling](https://arxiv.org/pdf/2509.13311)
 
+
+## 🌟 Misc
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Alibaba-NLP/DeepResearch&type=Date)](https://www.star-history.com/#Alibaba-NLP/DeepResearch&Date)
+
+</div>
+
+## 🚩 Talent Recruitment
+
+🔥🔥🔥 We are hiring! Research intern positions are open (based in Hangzhou、Beijing、Shanghai)
+
+📚 **Research Area**：Web Agent, Search Agent, Agent RL, MultiAgent RL, Agentic RAG
+
+☎️ **Contact**：[yongjiang.jy@alibaba-inc.com]()
+
+## Contact Information
+
+For communications, please contact Yong Jiang (yongjiang.jy@alibaba-inc.com).
+
 ## Citation
 ```bibtex
 @misc{tongyidr,

@@ -160,5 +160,13 @@ To overcome the data bottleneck for training advanced agents, we built a scalabl
 If you find our work helpful, please kindly cite our paper:
 
 ```bibtex
-
+@misc{qiao2025webresearcherunleashingunboundedreasoning,
+      title={WebResearcher: Unleashing unbounded reasoning capability in Long-Horizon Agents}, 
+      author={Zile Qiao and Guoxin Chen and Xuanzhong Chen and Donglei Yu and Wenbiao Yin and Xinyu Wang and Zhen Zhang and Baixuan Li and Huifeng Yin and Kuan Li and Rui Min and Minpeng Liao and Yong Jiang and Pengjun Xie and Fei Huang and Jingren Zhou},
+      year={2025},
+      eprint={2509.13309},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2509.13309}, 
+}
 ```

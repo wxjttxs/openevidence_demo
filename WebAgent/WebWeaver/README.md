@@ -43,3 +43,14 @@ Performance of varying deep research agents on DeepResearch Bench, DeepConsult, 
 ## 📑 Citation
 
 If this work is helpful, please kindly cite as:
+```bibtex
+@misc{li2025webweaverstructuringwebscaleevidence,
+      title={WebWeaver: Structuring Web-Scale Evidence with Dynamic Outlines for Open-Ended Deep Research}, 
+      author={Zijian Li and Xin Guan and Bo Zhang and Shen Huang and Houquan Zhou and Shaopeng Lai and Ming Yan and Yong Jiang and Pengjun Xie and Fei Huang and Jun Zhang and Jingren Zhou},
+      year={2025},
+      eprint={2509.13312},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2509.13312}, 
+}
+```

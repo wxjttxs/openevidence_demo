@@ -25,13 +25,12 @@ modifications to ReAct to avoid additional architectural complexity, ensuring si
 
 If you find ReSum useful, please kindly cite as:
 
-```
-@artical{wu2025resum,
-   title={ReSum: Unlocking Long-Horizon Search Intelligence
-via Context Summarization},
-   author={},
-   journal={},
-   year={2025}
+```bibtex
+@article{wu2025resumun,
+   title={ReSum: Unlocking Long-Horizon Search Intelligence via Context Summarization}, 
+   author={Xixi Wu and Kuan Li and Yida Zhao and Liwen Zhang and Litu Ou and Huifeng Yin and Zhongwang Zhang and Yong Jiang and Pengjun Xie and Fei Huang and Minhao Cheng and Shuai Wang and Hong Cheng and Jingren Zhou},
+   year={2025},
+   journal={arXiv preprint arXiv:2509.13313},
 }
 ```
 
