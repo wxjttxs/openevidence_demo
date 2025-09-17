@@ -20,7 +20,7 @@ alt="Alibaba-NLP%2FWebAgent | Trendshift" style="width: 250px; height: 55px;" wi
 
 # Introduction
 
-We present <img src="./assets/tongyi.png" width="14px" style="display:inline;"> **Tongyi DeepResearch**, an agentic large language model featuring 30 billion total parameters, with only 3 billion activated per token. Developed by Tongyi Lab, the model is specifically designed for **long-horizon, deep information-seeking** tasks. Tongyi DeepResearch demonstrates state-of-the-art performance across a range of agentic search benchmarks, including Humanity's Last Exam, BrowserComp, BrowserComp-ZH, WebWalkerQA,xbench-DeepSearch, FRAMES and SimpleQA.
+We present <img src="./assets/tongyi.png" width="14px" style="display:inline;"> **Tongyi DeepResearch**, an agentic large language model featuring 30.5 billion total parameters, with only 3.3 billion activated per token. Developed by Tongyi Lab, the model is specifically designed for **long-horizon, deep information-seeking** tasks. Tongyi DeepResearch demonstrates state-of-the-art performance across a range of agentic search benchmarks, including Humanity's Last Exam, BrowserComp, BrowserComp-ZH, WebWalkerQA,xbench-DeepSearch, FRAMES and SimpleQA.
 
 > Tongyi DeepResearch builds upon our previous work on the <img src="./assets/tongyi.png" width="14px" style="display:inline;"> [WebAgent](./WebAgent/) project.
 
@@ -119,12 +119,12 @@ Tongyi DeepResearch also has an extensive deep research agent family. You can fi
 [3] [WebSailor: Navigating Super-human Reasoning for Web Agent](https://arxiv.org/pdf/2507.02592)<br>
 [4] [WebShaper: Agentically Data Synthesizing via Information-Seeking Formalization](https://arxiv.org/pdf/2507.15061)<br>
 [5] [WebWatcher: Breaking New Frontier of Vision-Language Deep Research Agent](https://arxiv.org/pdf/2508.05748)<br>
-[6] [WebResearcher: Unleashing unbounded reasoning capability in Long-Horizon Agents](./WebAgent/WebResearcher/)<br>
-[7] [ReSum: Unlocking Long-Horizon Search Intelligence via Context Summarization](./WebAgent/WebResummer/)<br>
-[8] [WebWeaver: Structuring Web-Scale Evidence with Dynamic Outlines for Open-Ended Deep Research](./WebAgent/WebWeaver/)<br>
-[9] [WebSailor-V2: Bridging the Chasm to Proprietary Agents via Synthetic Data and Scalable Reinforcement Learning](./WebAgent/WebSailor-V2/)<br>
-[10] [Scaling Agents via Continual Pre-training](./Agent/AgentFounder/)<br>
-[11] [Towards General Agentic Intelligencevia Environment Scaling](./Agent/AgentScaler/)
+[6] [WebResearcher: Unleashing unbounded reasoning capability in Long-Horizon Agents](https://arxiv.org/pdf/2509.13309)<br>
+[7] [ReSum: Unlocking Long-Horizon Search Intelligence via Context Summarization](https://arxiv.org/pdf/2509.13313)<br>
+[8] [WebWeaver: Structuring Web-Scale Evidence with Dynamic Outlines for Open-Ended Deep Research](https://arxiv.org/pdf/2509.13312)<br>
+[9] [WebSailor-V2: Bridging the Chasm to Proprietary Agents via Synthetic Data and Scalable Reinforcement Learning](https://arxiv.org/pdf/2509.13305)<br>
+[10] [Scaling Agents via Continual Pre-training](https://arxiv.org/pdf/2509.13310)<br>
+[11] [Towards General Agentic Intelligence via Environment Scaling](https://arxiv.org/pdf/2509.13311)
 
 ## Citation
 ```bibtex
