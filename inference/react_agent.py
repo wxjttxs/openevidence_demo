@@ -27,7 +27,7 @@ from tool_visit import *
 OBS_START = '<tool_response>'
 OBS_END = '\n</tool_response>'
 
-MAX_LLM_CALL_PER_RUN = int(os.getenv('MAX_LLM_CALL_PER_RUN', 100))
+MAX_LLM_CALL_PER_RUN = int(os.getenv('MAX_LLM_CALL_PER_RUN', 50))
 
 TOOL_CLASS = [
     FileParser(),

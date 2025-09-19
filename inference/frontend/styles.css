@@ -422,6 +422,104 @@ body {
     }
 }
 
+/* 最终答案的markdown样式 */
+.message.final-answer .message-text h1,
+.message.final-answer .message-text h2,
+.message.final-answer .message-text h3,
+.message.final-answer .message-text h4,
+.message.final-answer .message-text h5,
+.message.final-answer .message-text h6 {
+    color: white;
+    margin: 1rem 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.message.final-answer .message-text h1 {
+    font-size: 1.5rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 0.5rem;
+}
+
+.message.final-answer .message-text h2 {
+    font-size: 1.3rem;
+}
+
+.message.final-answer .message-text h3 {
+    font-size: 1.1rem;
+}
+
+.message.final-answer .message-text p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.message.final-answer .message-text ul,
+.message.final-answer .message-text ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+.message.final-answer .message-text li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.message.final-answer .message-text blockquote {
+    border-left: 4px solid rgba(255, 255, 255, 0.3);
+    margin: 1rem 0;
+    padding-left: 1rem;
+    font-style: italic;
+    opacity: 0.9;
+}
+
+.message.final-answer .message-text code {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+}
+
+.message.final-answer .message-text pre {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    overflow-x: auto;
+}
+
+.message.final-answer .message-text pre code {
+    background: none;
+    padding: 0;
+}
+
+.message.final-answer .message-text table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.message.final-answer .message-text th,
+.message.final-answer .message-text td {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.message.final-answer .message-text th {
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+.message.final-answer .message-text a {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+.message.final-answer .message-text a:hover {
+    color: #dbeafe;
+}
+
 /* 滚动条样式 */
 .chat-container::-webkit-scrollbar {
     width: 6px;

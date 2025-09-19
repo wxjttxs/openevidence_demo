@@ -3,7 +3,7 @@ const CONFIG = {
     API_BASE_URL: 'http://localhost:5006',
     MAX_MESSAGE_LENGTH: 4000,
     TYPING_SPEED: 30, // 毫秒
-    AUTO_SCROLL_DELAY: 100
+    AUTO_SCROLL_DELAY: 50 // 减少延迟，使滚动更及时
 };
 
 // 全局状态
@@ -55,9 +55,19 @@ function setupEventListeners() {
         }
     });
     
-    // 自动滚动
-    const observer = new MutationObserver(autoScroll);
-    observer.observe(elements.chatMessages, { childList: true });
+    // 优化的自动滚动 - 监听内容变化并立即滚动
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                autoScroll();
+            }
+        });
+    });
+    observer.observe(elements.chatMessages, { 
+        childList: true, 
+        subtree: true, 
+        characterData: true 
+    });
 }
 
 function autoResizeTextarea() {
@@ -216,7 +226,7 @@ function handleStreamEvent(event, currentElement) {
             return addMessage('error', content, 'tool-error');
             
         case 'final_answer':
-            return addMessage('final-answer', content, 'final-answer');
+            return addMessage('final-answer', content, 'final-answer', { renderMarkdown: true });
             
         case 'completed':
             updateStatus('connected', '处理完成');
@@ -273,6 +283,9 @@ function addMessage(type, content, eventType = '', metadata = {}) {
         messageText.innerHTML = createPythonExecutionContent(metadata.code);
     } else if (type === 'tool-result' && metadata.result) {
         messageText.innerHTML = createToolResultContent(metadata.result);
+    } else if (metadata.renderMarkdown && typeof marked !== 'undefined') {
+        // 使用marked.js渲染markdown
+        messageText.innerHTML = marked.parse(content);
     } else {
         messageText.innerHTML = formatContent(content);
     }
@@ -402,9 +415,10 @@ function escapeHtml(text) {
 }
 
 function autoScroll() {
-    setTimeout(() => {
+    // 立即滚动到底部，并使用RAF确保DOM已更新
+    requestAnimationFrame(() => {
         elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-    }, CONFIG.AUTO_SCROLL_DELAY);
+    });
 }
 
 // 全局函数
