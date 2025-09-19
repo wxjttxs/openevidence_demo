@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tongyi DeepResearch - 深度研究助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>🤖 Tongyi DeepResearch</h1>
+                    <p>深度研究助手</p>
+                </div>
+                <div class="status" id="status">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="statusText">准备就绪</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主聊天区域 -->
+        <main class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <!-- 欢迎消息 -->
+                <div class="message assistant">
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-type">🤖 系统</span>
+                            <span class="message-time" id="welcomeTime"></span>
+                        </div>
+                        <div class="message-text">
+                            <p>欢迎使用 Tongyi DeepResearch！我可以帮助您进行深度研究，包括：</p>
+                            <ul>
+                                <li>🔍 网络搜索和信息收集</li>
+                                <li>📚 学术文献研究</li>
+                                <li>💻 代码分析和执行</li>
+                                <li>📄 文件内容解析</li>
+                                <li>🌐 网页内容提取</li>
+                            </ul>
+                            <p>请提出您的问题，我将为您进行深度研究并提供详细答案。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 输入区域 -->
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="请输入您的问题..." 
+                    rows="1"
+                    maxlength="4000"
+                ></textarea>
+                <button id="sendButton" class="send-button" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <div class="input-footer">
+                <span class="char-count" id="charCount">0/4000</span>
+                <span class="input-hint">按 Enter 发送，Shift+Enter 换行</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>正在处理您的问题...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -254,7 +254,8 @@ def single_round_statistics(input_file):
                     start_idx = remaining_content.find("<tool_call>")
                     end_idx = remaining_content.find("</tool_call>")
                     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                        tool_call_content = remaining_content[start_idx + 11:end_idx].strip()
+                        # iteration 
+                        tool_call_content = remaining_content[start_idx + 2:end_idx].strip()
                         if tool_call_content:  
                             num_tool_use += 1
                             

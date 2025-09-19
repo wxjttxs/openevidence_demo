@@ -57,7 +57,8 @@ class MultiTurnReactAgent(FnCallAgent):
     def sanity_check_output(self, content):
         return "<think>" in content and "</think>" in content
     
-    def call_server(self, msgs, planning_port, max_tries=10):
+    # --- Attempting to call the service, try 1/10 ---
+    def call_server(self, msgs, planning_port, max_tries=3):
         
         openai_api_key = "EMPTY"
         openai_api_base = f"http://127.0.0.1:{planning_port}/v1"
