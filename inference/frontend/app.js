@@ -195,7 +195,7 @@ async function streamChat(message) {
 }
 
 function handleStreamEvent(event, currentElement) {
-    const { type, content, timestamp, round, tool_name, tool_args, result, code } = event;
+    const { type, content, timestamp, round, tool_name, tool_args, result, code, judgment, answer_data } = event;
     
     switch (type) {
         case 'init':
@@ -224,9 +224,24 @@ function handleStreamEvent(event, currentElement) {
             
         case 'tool_error':
             return addMessage('error', content, 'tool-error');
+        
+        case 'retrieval_judgment':
+            return addMessage('retrieval-judgment', content, 'retrieval-judgment');
+            
+        case 'judgment_result':
+            return addMessage('judgment-result', content, 'judgment-result', { judgment });
+            
+        case 'judgment_error':
+            return addMessage('error', content, 'judgment-error');
+            
+        case 'answer_generation':
+            return addMessage('answer-generation', content, 'answer-generation');
+        
+        case 'continue_reasoning':
+            return addMessage('assistant', content, 'continue-reasoning');
             
         case 'final_answer':
-            return addMessage('final-answer', content, 'final-answer', { renderMarkdown: true });
+            return addMessage('final-answer', content, 'final-answer', { renderMarkdown: true, answer_data });
             
         case 'completed':
             updateStatus('connected', '处理完成');
@@ -283,6 +298,10 @@ function addMessage(type, content, eventType = '', metadata = {}) {
         messageText.innerHTML = createPythonExecutionContent(metadata.code);
     } else if (type === 'tool-result' && metadata.result) {
         messageText.innerHTML = createToolResultContent(metadata.result);
+    } else if (type === 'judgment-result' && metadata.judgment) {
+        messageText.innerHTML = createJudgmentResultContent(content, metadata.judgment);
+    } else if (type === 'final-answer' && metadata.answer_data) {
+        messageText.innerHTML = createFinalAnswerWithCitations(content, metadata.answer_data);
     } else if (metadata.renderMarkdown && typeof marked !== 'undefined') {
         // 使用marked.js渲染markdown
         messageText.innerHTML = marked.parse(content);
@@ -333,7 +352,12 @@ function getMessageTypeText(type, eventType) {
         'tool-error': '❌ 工具错误',
         'timeout': '⏰ 超时',
         'token-limit': '📊 Token限制',
-        'no-answer': '❓ 无答案'
+        'no-answer': '❓ 无答案',
+        'retrieval-judgment': '🔍 检索判断',
+        'judgment-result': '✅ 判断结果', 
+        'judgment-error': '❌ 判断错误',
+        'answer-generation': '📝 生成答案',
+        'continue-reasoning': '🔄 继续推理'
     };
     
     return typeMap[eventType] || typeMap[type] || '📝 消息';
@@ -423,3 +447,127 @@ function autoScroll() {
 
 // 全局函数
 window.toggleCollapsible = toggleCollapsible;
+
+// 引用相关函数
+function createJudgmentResultContent(content, judgment) {
+    const canAnswer = judgment.can_answer ? 'yes' : 'no';
+    const confidence = Math.round(judgment.confidence * 100);
+    
+    return `
+        <div>${content}</div>
+        <div class="judgment-details">
+            <div><strong>能否回答:</strong> <span class="judgment-${canAnswer}">${judgment.can_answer ? '是' : '否'}</span></div>
+            <div><strong>置信度:</strong> <span class="judgment-confidence">${confidence}%</span></div>
+            <div class="judgment-reason"><strong>原因:</strong> ${judgment.reason}</div>
+            ${judgment.missing_info ? `<div><strong>缺失信息:</strong> ${judgment.missing_info}</div>` : ''}
+        </div>
+    `;
+}
+
+function createFinalAnswerWithCitations(content, answerData) {
+    console.log('[DEBUG] createFinalAnswerWithCitations called with:', { content, answerData });
+    
+    // 如果content是JSON字符串，尝试解析
+    if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('{ "'))) {
+        try {
+            const parsed = JSON.parse(content);
+            console.log('[DEBUG] Parsed content as JSON:', parsed);
+            if (parsed.answer) {
+                content = parsed.answer;
+                if (!answerData && parsed.citations) {
+                    answerData = { answer: parsed.answer, citations: parsed.citations };
+                }
+            }
+        } catch (e) {
+            console.log('[DEBUG] Failed to parse content as JSON:', e);
+        }
+    }
+    
+    if (!answerData || !answerData.citations) {
+        console.log('[DEBUG] No answer data or citations, using simple formatting');
+        return formatContent(content);
+    }
+    
+    let formattedContent = formatContent(content);
+    
+    // 处理引用
+    const citations = answerData.citations;
+    if (citations && citations.length > 0) {
+        console.log('[DEBUG] Processing citations:', citations);
+        // 添加引用点击事件
+        formattedContent = addCitationClickHandlers(formattedContent, citations);
+    }
+    
+    return formattedContent;
+}
+
+function addCitationClickHandlers(content, citations) {
+    // 创建引用数据映射
+    const citationMap = {};
+    citations.forEach(citation => {
+        citationMap[citation.id] = citation;
+    });
+    
+    // 替换citation-preview为可点击的元素
+    content = content.replace(
+        /<span class="citation-preview" data-full-content="([^"]*)" data-citation-id="(\d+)">([^<]*)<\/span>/g,
+        (match, fullContent, citationId, preview) => {
+            const citation = citationMap[citationId];
+            if (citation) {
+                return `<span class="citation-preview" 
+                            onclick="toggleCitation('${citationId}')" 
+                            data-citation-id="${citationId}" 
+                            data-full-content="${escapeHtml(citation.full_content)}"
+                            title="点击展���完整内容">${preview}</span>`;
+            }
+            return match;
+        }
+    );
+    
+    return content;
+}
+
+function toggleCitation(citationId) {
+    // 移除已存在的展开内容
+    const existingExpanded = document.getElementById(`citation-expanded-${citationId}`);
+    if (existingExpanded) {
+        existingExpanded.remove();
+        return;
+    }
+    
+    // 找到对应的citation-preview元素
+    const citationElement = document.querySelector(`[data-citation-id="${citationId}"]`);
+    if (!citationElement) return;
+    
+    const fullContent = citationElement.getAttribute('data-full-content');
+    if (!fullContent) return;
+    
+    // 创建展开的引用内容
+    const expandedDiv = document.createElement('div');
+    expandedDiv.id = `citation-expanded-${citationId}`;
+    expandedDiv.className = 'citation-expanded';
+    expandedDiv.innerHTML = `
+        <button class="citation-close" onclick="closeCitation('${citationId}')" title="关闭">×</button>
+        <div class="citation-content">${escapeHtml(fullContent)}</div>
+    `;
+    
+    // 插入到引用元素后面
+    citationElement.parentNode.insertBefore(expandedDiv, citationElement.nextSibling);
+    
+    // 滚动到展开的内容
+    expandedDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeCitation(citationId) {
+    const expandedDiv = document.getElementById(`citation-expanded-${citationId}`);
+    if (expandedDiv) {
+        expandedDiv.remove();
+    }
+}
+
+// 添加到全局函数
+window.toggleCitation = toggleCitation;
+window.closeCitation = closeCitation;
+
+
+

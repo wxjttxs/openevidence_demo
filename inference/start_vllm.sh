@@ -59,7 +59,7 @@ export WEB_PORT=8086
 
 # vLLM服务器配置
 VLLM_ARGS="--gpu-memory-utilization 0.6"
-SERVER_GPUS=${SERVER_GPUS:-"0"}
+SERVER_GPUS=${SERVER_GPUS:-"2,3,4,5"}
 
 # 检查GPU内存使用情况
 echo "Checking GPU memory usage..."
@@ -86,7 +86,11 @@ echo "Starting VLLM servers with args: $VLLM_ARGS"
 IFS=',' read -ra GPU_LIST <<< "$SERVER_GPUS"
 num_gpus=${#GPU_LIST[@]}
 base_port=6001
+# 加载conda的初始化脚本
+source ~/anaconda3/etc/profile.d/conda.sh  # 或者你的conda安装路径
 
+# 激活conda环境
+conda activate react_infer_env
 if [ $num_gpus -gt 1 ]; then
     # 多GPU张量并行
     tp_size=$num_gpus

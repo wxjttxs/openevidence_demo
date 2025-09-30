@@ -1,7 +1,11 @@
 #!/bin/bash
 source .env
 # 简化启动脚本 - 仅用于测试Web界面，不启动vLLM
+# 加载conda的初始化脚本
+source ~/anaconda3/etc/profile.d/conda.sh  # 或者你的conda安装路径
 
+# 激活conda环境
+conda activate react_infer_env
 export TORCHDYNAMO_VERBOSE=1
 export TORCHDYNAMO_DISABLE=1
 export PYTHONDONTWRITEBYTECODE=1
@@ -121,3 +125,6 @@ else
     kill $API_PID 2>/dev/null
     exit 1
 fi
+
+
+

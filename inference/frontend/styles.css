@@ -548,3 +548,117 @@ body {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
 }
+
+/* ���用相关样式 */
+.citation-preview {
+    color: #3b82f6;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+    position: relative;
+}
+
+.citation-preview:hover {
+    color: #1d4ed8;
+    background-color: rgba(59, 130, 246, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.citation-expanded {
+    background-color: #eff6ff;
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    position: relative;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.citation-expanded .citation-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.citation-expanded .citation-close:hover {
+    background: #1d4ed8;
+}
+
+.citation-expanded .citation-content {
+    line-height: 1.6;
+    color: #374151;
+    padding-right: 2rem;
+}
+
+.citation-number {
+    color: #3b82f6;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.citation-reference {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    border-radius: 4px;
+}
+
+.citation-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+/* 判断结果样式 */
+.message.retrieval-judgment .message-content {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+}
+
+.message.judgment-result .message-content {
+    background: #ecfdf5;
+    border-left: 4px solid #10b981;
+}
+
+.message.answer-generation .message-content {
+    background: #ede9fe;
+    border-left: 4px solid #8b5cf6;
+}
+
+.judgment-details {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.judgment-confidence {
+    font-weight: 600;
+    color: #059669;
+}
+
+.judgment-reason {
+    color: #374151;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+
+

@@ -7,6 +7,7 @@ from typing import Dict, Iterator, List, Optional, Generator
 from datetime import datetime
 from react_agent import MultiTurnReactAgent, TOOL_MAP, MAX_LLM_CALL_PER_RUN, today_date
 from prompt import SYSTEM_PROMPT
+from answer_system import AnswerJudgmentSystem
 
 class StreamingReactAgent(MultiTurnReactAgent):
     """流式推理代理，支持实时输出思考过程和工具调用"""
@@ -22,6 +23,9 @@ class StreamingReactAgent(MultiTurnReactAgent):
         
         # 不调用父类的__init__，因为我们只需要其中的部分功能
         self.function_list = function_list or []
+        
+        # 初始化答案判断系统
+        self.answer_system = AnswerJudgmentSystem()
         
     def call_server(self, msgs, planning_port, max_tries=3):
         """调用vLLM服务器"""
@@ -94,8 +98,9 @@ class StreamingReactAgent(MultiTurnReactAgent):
         
     def custom_call_tool(self, tool_name: str, tool_args: dict, **kwargs):
         """调用工具"""
+        print(f"[DEBUG] custom_call_tool called with: tool_name={tool_name}, tool_args={tool_args}")
+        
         if tool_name in TOOL_MAP:
-            tool_args["params"] = tool_args
             if "python" in tool_name.lower():
                 result = TOOL_MAP['PythonInterpreter'].call(tool_args)
             elif tool_name == "parse_file":
@@ -107,6 +112,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 if not isinstance(raw_result, str):
                     result = str(raw_result)
             else:
+                # 直接传递tool_args，不要添加额外的params包装
                 raw_result = TOOL_MAP[tool_name].call(tool_args, **kwargs)
                 result = raw_result
             return result
@@ -281,6 +287,88 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     print(f"Yielding tool_result event: {tool_result_event}")
                     yield tool_result_event
                     
+                    # 如果是检索工具，判断结果是否足够回答问题
+                    if tool_name == "retrieval" and result and not result.startswith("[Retrieval] Error"):
+                        judgment_event = {
+                            "type": "retrieval_judgment",
+                            "content": "正在评估检索内容是否足够回答问题...",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        print(f"Yielding retrieval_judgment event: {judgment_event}")
+                        yield judgment_event
+                        
+                        try:
+                            # 判断检索内容是否足够
+                            judgment = self.answer_system.judge_retrieval_sufficiency(self.user_prompt, result)
+                            
+                            judgment_result_event = {
+                                "type": "judgment_result",
+                                "content": f"检索内容评估完成: {'可以回答' if judgment.get('can_answer') else '需要更多信息'}",
+                                "judgment": judgment,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            print(f"Yielding judgment_result event: {judgment_result_event}")
+                            yield judgment_result_event
+                            
+                            # 如果检索内容足够，直接生成答案，不继续推理
+                            if judgment.get('can_answer', False):
+                                answer_generation_event = {
+                                    "type": "answer_generation", 
+                                    "content": f"检索内容可以回答问题（置信度: {judgment.get('confidence', 0):.2f}），正在生成最终答案...",
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                print(f"Yielding answer_generation event: {answer_generation_event}")
+                                yield answer_generation_event
+                                
+                                # 解析检索结果并生成带引用的答案
+                                retrieval_results = self.answer_system.parse_retrieval_results(result)
+                                sources_content = self.answer_system.create_sources_content_for_citation(retrieval_results)
+                                answer_data = self.answer_system.generate_answer_with_citations(self.user_prompt, retrieval_results)
+                                
+                                print(f"[DEBUG] Generated answer_data: {answer_data}")
+                                
+                                # 使用纯文本格式化（不包含HTML）
+                                final_answer = self.answer_system.format_final_answer_plain(answer_data)
+                                
+                                print(f"[DEBUG] Final formatted answer: {final_answer}")
+                                
+                                final_answer_event = {
+                                    "type": "final_answer",
+                                    "content": final_answer,
+                                    "answer_data": answer_data,
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                print(f"Yielding final_answer event (from retrieval): {final_answer_event}")
+                                yield final_answer_event
+                                
+                                completed_event = {
+                                    "type": "completed",
+                                    "content": "基于检索内容生成答案完成",
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                print(f"Yielding completed event (from retrieval): {completed_event}")
+                                yield completed_event
+                                print(f"=== StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===")
+                                return
+                            else:
+                                # 检索内容不足，继续推理流程
+                                continue_reasoning_event = {
+                                    "type": "continue_reasoning",
+                                    "content": f"检索内容不足以回答问题（置信度: {judgment.get('confidence', 0):.2f}），继续推理流程...",
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                print(f"Yielding continue_reasoning event: {continue_reasoning_event}")
+                                yield continue_reasoning_event
+                                
+                        except Exception as e:
+                            judgment_error_event = {
+                                "type": "judgment_error",
+                                "content": f"检索内容评估出错: {str(e)}",
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            print(f"Yielding judgment_error event: {judgment_error_event}")
+                            yield judgment_error_event
+                    
                     result = "<tool_response>\n" + result + "\n</tool_response>"
                     messages.append({"role": "user", "content": result})
                     print(f"Added tool result to conversation")
@@ -385,3 +473,6 @@ class StreamingReactAgent(MultiTurnReactAgent):
         print(f"Yielding no_answer event: {no_answer_event}")
         yield no_answer_event
         print(f"=== StreamingReactAgent.stream_run NO_ANSWER_END ===")
+
+
+
