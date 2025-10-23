@@ -44,6 +44,7 @@ export default function ChatContainer({ messages, isProcessing, onCitationClick 
                 duration: 0.3,
                 delay: index === messages.length - 1 ? 0 : 0,
               }}
+              className={message.type === 'user' ? 'flex justify-end' : ''}
             >
               <MessageComponent message={message} onCitationClick={onCitationClick} />
             </motion.div>

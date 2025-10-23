@@ -290,6 +290,11 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 think_buffer = ""
                 
                 for chunk in self.call_server_stream(messages, planning_port):
+                    # 在流式接收过程中检查客户端是否断开
+                    if cancelled["value"]:
+                        print(f"⚠️ 客户端断开，停止LLM流式接收")
+                        return
+                    
                     accumulated_content += chunk
                     
                     # 实时检测和提取 <think> 标签内容
@@ -314,6 +319,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                     "type": "thinking_chunk",
                                     "content": chunk_to_send,
                                     "accumulated": think_buffer.strip(),
+                                    "is_streaming": True,  # 仍在流式传输
                                     "is_complete": True,
                                     "timestamp": datetime.now().isoformat()
                                 }
@@ -329,6 +335,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                 "type": "thinking_chunk",
                                 "content": chunk_to_send,
                                 "accumulated": think_buffer.strip(),
+                                "is_streaming": True,  # 正在流式传输
                                 "is_complete": False,
                                 "timestamp": datetime.now().isoformat()
                             }
@@ -336,6 +343,17 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 
                 content = accumulated_content
                 print(f"LLM response received (stream completed): {content[:200]}...")
+                
+                # 如果有思考内容，发送最终的 thinking 事件（标记思考完成，触发前端折叠）
+                if think_buffer.strip():
+                    thinking_complete_event = {
+                        "type": "thinking",
+                        "content": think_buffer.strip(),
+                        "is_streaming": False,  # 明确标记流式结束，触发折叠
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    print(f"Yielding thinking complete event (for collapsing): {thinking_complete_event['content'][:100]}...")
+                    yield thinking_complete_event
                 
                 # 清理tool_response标记
                 if '<tool_response>' in content:
@@ -415,6 +433,11 @@ class StreamingReactAgent(MultiTurnReactAgent):
                             print(f"Calling tool {tool_name} with args {tool_args}")
                             result = self.custom_call_tool(tool_name, tool_args)
                             print(f"Tool result: {result[:200]}...")
+                            
+                            # 工具调用完成后检查客户端是否断开
+                            if cancelled["value"]:
+                                print(f"⚠️ 客户端断开，停止工具结果处理")
+                                return
                             
                     except Exception as e:
                         result = f'工具调用错误: {str(e)}'

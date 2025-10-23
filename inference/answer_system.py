@@ -109,7 +109,9 @@ Example:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.3,
-                max_tokens=10000
+                max_tokens=10000,
+                stream=False,
+                extra_body={"enable_thinking": False}  # 明确禁用thinking模式（非流式调用）
             )
             
             content = response.choices[0].message.content
@@ -272,7 +274,9 @@ Example:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.5,
-                max_tokens=4096
+                max_tokens=4096,
+                stream=False,
+                extra_body={"enable_thinking": False}  # 明确禁用thinking模式（非流式调用）
             )
             
             content = response.choices[0].message.content

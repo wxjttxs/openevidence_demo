@@ -74,6 +74,16 @@ function App() {
       await sendStreamingChat(
         content.trim(),
         (newMessage) => {
+          // 调试日志：thinking 消息的状态
+          if (newMessage.type === 'thinking') {
+            console.log(`📝 Thinking消息更新:`, {
+              id: newMessage.id,
+              eventType: newMessage.eventType,
+              isStreaming: newMessage.isStreaming,
+              contentLength: newMessage.content.length
+            })
+          }
+          
           setMessages(prev => {
             // 在整个消息列表中查找相同ID的消息
             const existingIndex = prev.findIndex(msg => msg.id === newMessage.id)

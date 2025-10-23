@@ -324,20 +324,35 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
       )
     }
     
-    // 对于thinking消息，如果是流式中，添加光标效果
+    // 对于thinking消息
     if (message.type === 'thinking') {
-      return (
-        <div className="text-dark-200 whitespace-pre-wrap">
-          {message.content}
-          {/* 流式thinking中显示闪烁光标 */}
-          {message.isStreaming && (
+      // 流式生成中：直接显示，带光标
+      if (message.isStreaming) {
+        return (
+          <div className="text-dark-200 whitespace-pre-wrap">
+            {message.content}
+            {/* 流式thinking中显示闪烁光标 */}
             <motion.span
               animate={{ opacity: [1, 0, 1] }}
               transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
               className="inline-block w-2 h-5 ml-1 bg-yellow-500 rounded-sm align-middle"
             />
-          )}
-        </div>
+          </div>
+        )
+      }
+      
+      // 生成完成：使用折叠组件，默认折叠
+      return (
+        <CollapsibleSection 
+          title="查看完整思考过程" 
+          defaultExpanded={false}
+        >
+          <div className="bg-dark-900/50 rounded-lg p-4">
+            <div className="text-dark-200 whitespace-pre-wrap leading-relaxed">
+              {message.content}
+            </div>
+          </div>
+        </CollapsibleSection>
       )
     }
     
@@ -352,7 +367,9 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`relative rounded-2xl border backdrop-blur-sm overflow-hidden bg-gradient-to-br ${colorClass}`}
+      className={`relative rounded-2xl border backdrop-blur-sm overflow-hidden bg-gradient-to-br ${colorClass} ${
+        message.type === 'user' ? 'max-w-2xl' : ''
+      }`}
     >
       {/* 背景光晕效果 */}
       {message.type === 'final-answer' && !message.isStreaming && (

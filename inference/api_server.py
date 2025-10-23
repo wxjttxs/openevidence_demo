@@ -206,10 +206,13 @@ async def chat_stream(request: ChatRequest):
                 # 执行流式处理（传入 cancelled 标记）
                 has_completed = False  # 标记是否已发送 completed 事件
                 
+                event_count = 0
                 for event in agent.stream_run(request.question, VLLM_PORT, cancelled=cancelled):
-                    # 检查客户端是否断开
+                    event_count += 1
+                    
+                    # 每个事件前检查客户端是否断开
                     if cancelled["value"]:
-                        print(f"⚠️ [Session {session_id[:8]}] 检测到客户端断开，停止处理")
+                        print(f"⚠️ [Session {session_id[:8]}] 检测到客户端断开，停止处理（已处理 {event_count} 个事件）")
                         break
                     
                     # 转换为JSON格式
@@ -354,10 +357,16 @@ async def chat_stream(request: ChatRequest):
                 try:
                     with session_lock:
                         if session_id in active_sessions:
-                            active_sessions[session_id]["status"] = "completed"
+                            # 根据 cancelled 状态设置不同的结束状态
+                            if cancelled["value"]:
+                                active_sessions[session_id]["status"] = "client_disconnected"
+                                print(f"✅ [Session {session_id[:8]}] 客户端断开，会话已清理")
+                            else:
+                                active_sessions[session_id]["status"] = "completed"
+                                print(f"✅ [Session {session_id[:8]}] 会话正常完成")
                             active_sessions[session_id]["end_time"] = datetime.now().isoformat()
-                except:
-                    pass
+                except Exception as e:
+                    print(f"⚠️ [Session {session_id[:8]}] 清理会话记录失败: {e}")
                 
                 # 清理agent实例
                 if agent is not None:
