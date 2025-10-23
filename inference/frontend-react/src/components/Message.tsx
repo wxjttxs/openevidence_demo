@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { User, Bot, Lightbulb, Wrench, CheckCircle, XCircle, Target, AlertCircle } from 'lucide-react'
+import { User, Bot, Lightbulb, Wrench, CheckCircle, XCircle, Target, AlertCircle, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -7,8 +7,16 @@ import { Message as MessageType } from '../types'
 import CollapsibleSection from './CollapsibleSection'
 import 'highlight.js/styles/tokyo-night-dark.css'
 
+interface Citation {
+  id: number | string
+  title: string
+  full_content?: string
+  preview?: string
+}
+
 interface MessageProps {
   message: MessageType
+  onCitationClick: (citation: Citation) => void
 }
 
 const messageIcons = {
@@ -62,7 +70,7 @@ const messageLabels: Record<string, string> = {
   'continue-reasoning': '继续推理',
 }
 
-export default function MessageComponent({ message }: MessageProps) {
+export default function MessageComponent({ message, onCitationClick }: MessageProps) {
   const Icon = messageIcons[message.type] || Bot
   const colorClass = messageColors[message.type] || messageColors.assistant
   const label = messageLabels[message.eventType || ''] || messageLabels[message.type] || '消息'
@@ -175,38 +183,96 @@ export default function MessageComponent({ message }: MessageProps) {
 
     // 最终答案（Markdown渲染）
     if (message.type === 'final-answer') {
+      // 提取答案主体和引用列表
+      const citations = message.metadata?.answer_data?.citations || []
+      
+      // 从content中移除"参考文献:"部分（如果存在）
+      let answerContent = message.content
+      const refIndex = answerContent.indexOf('\n\n参考文献:')
+      if (refIndex !== -1) {
+        answerContent = answerContent.substring(0, refIndex)
+      }
+      
       return (
-        <div className="markdown prose prose-invert max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
-            components={{
-              a: ({ node, ...props }) => (
-                <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300" />
-              ),
-              code: ({ node, className, children, ...props }) => {
-                const match = /language-(\w+)/.exec(className || '')
-                return match ? (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                ) : (
-                  <code className="bg-dark-800 text-primary-400 px-1.5 py-0.5 rounded text-sm" {...props}>
-                    {children}
-                  </code>
-                )
-              },
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
-          {/* 如果正在流式生成，显示闪烁光标 */}
-          {message.isStreaming && (
-            <motion.span
-              animate={{ opacity: [1, 0, 1] }}
-              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-              className="inline-block w-2 h-5 ml-1 bg-primary-500 rounded-sm align-middle"
-            />
+        <div className="space-y-6">
+          {/* 答案主体 */}
+          <div className="markdown prose prose-invert max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={{
+                a: ({ node, ...props }) => (
+                  <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300" />
+                ),
+                code: ({ node, className, children, ...props }) => {
+                  const match = /language-(\w+)/.exec(className || '')
+                  return match ? (
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  ) : (
+                    <code className="bg-dark-800 text-primary-400 px-1.5 py-0.5 rounded text-sm" {...props}>
+                      {children}
+                    </code>
+                  )
+                },
+              }}
+            >
+              {answerContent}
+            </ReactMarkdown>
+            {/* 如果正在流式生成，显示闪烁光标 */}
+            {message.isStreaming && (
+              <motion.span
+                animate={{ opacity: [1, 0, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                className="inline-block w-2 h-5 ml-1 bg-primary-500 rounded-sm align-middle"
+              />
+            )}
+          </div>
+
+          {/* 引用列表 - 仅在非流式且有citations时显示 */}
+          {!message.isStreaming && citations.length > 0 && (
+            <div className="border-t border-dark-700 pt-6">
+              <h3 className="text-lg font-semibold text-dark-50 mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-primary-400" />
+                参考文献
+              </h3>
+              <div className="space-y-4">
+                {citations.map((citation: any) => {
+                  // 使用后端提供的 preview 字段（前30字）
+                  const preview = citation.preview || ''
+                  return (
+                    <motion.div
+                      key={citation.id}
+                      whileHover={{ scale: 1.02 }}
+                      className="group bg-dark-800/50 rounded-lg p-4 border border-dark-700 hover:border-primary-500/50 transition-all cursor-pointer"
+                      onClick={() => onCitationClick({
+                        id: citation.id,
+                        title: citation.title,
+                      })}
+                    >
+                      {/* 文章标题 */}
+                      <div className="flex items-start space-x-3 mb-2">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 bg-primary-500/20 border border-primary-500/30 rounded text-primary-400 font-mono text-xs font-semibold">
+                          [{citation.id}]
+                        </span>
+                        <h4 className="text-base font-semibold text-dark-50 leading-tight flex-1">
+                          {citation.title}
+                        </h4>
+                      </div>
+                      {/* 参考片段（前30字，比标题小两号） */}
+                      <p className="text-xs text-dark-400 leading-relaxed pl-9">
+                        {preview}{preview.length >= 30 ? '...' : ''}
+                      </p>
+                      {/* 点击提示 */}
+                      <div className="text-xs text-primary-400 pl-9 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        点击查看完整内容 →
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
       )

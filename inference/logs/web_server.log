@@ -71,3 +71,73 @@
 14:14:02 [vite] hmr update /src/App.tsx, /src/index.css
 14:14:02 [vite] hmr update /src/components/Message.tsx, /src/index.css
 14:14:02 [vite] page reload src/types.ts
+14:26:33 [vite] hmr update /src/App.tsx, /src/index.css
+14:26:48 [vite] hmr update /src/App.tsx, /src/index.css
+14:27:11 [vite] hmr update /src/App.tsx, /src/index.css
+14:27:24 [vite] hmr update /src/App.tsx, /src/index.css
+14:27:46 [vite] hmr update /src/App.tsx, /src/index.css
+14:28:04 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+14:28:30 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+14:30:36 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:30:49 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:31:21 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:31:32 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:32:50 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+14:32:50 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+14:32:50 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:32:50 [vite] hmr update /src/App.tsx, /src/index.css
+14:46:29 [vite] hmr update /src/App.tsx, /src/index.css
+14:47:01 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:47:16 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:51:00 [vite] hmr update /src/App.tsx, /src/index.css
+14:51:17 [vite] hmr update /src/App.tsx, /src/index.css
+14:51:41 [vite] page reload src/types.ts
+14:52:00 [vite] hmr update /src/App.tsx, /src/index.css
+14:52:10 [vite] page reload src/types.ts
+14:52:22 [vite] hmr update /src/App.tsx, /src/index.css
+14:52:32 [vite] hmr update /src/App.tsx, /src/index.css
+14:52:48 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+14:53:02 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+14:53:12 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:53:21 [vite] hmr update /src/App.tsx, /src/index.css
+14:53:30 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+14:53:39 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:54:44 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+14:54:44 [vite] hmr update /src/App.tsx, /src/index.css
+14:54:44 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+14:54:44 [vite] page reload src/types.ts
+14:54:44 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:54:44 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+15:02:31 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:02:47 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:03:00 [vite] hmr update /src/App.tsx, /src/index.css
+15:03:10 [vite] hmr update /src/App.tsx, /src/index.css
+15:03:19 [vite] hmr update /src/App.tsx, /src/index.css
+15:04:18 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:04:18 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:04:18 [vite] hmr update /src/App.tsx, /src/index.css
+15:13:29 [vite] hmr update /src/App.tsx, /src/index.css
+15:13:29 [vite] page reload src/types.ts
+15:13:29 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:13:29 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+15:13:29 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:13:29 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:25:17 [vite] hmr update /src/App.tsx, /src/index.css
+15:25:48 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:25:57 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:26:48 [vite] hmr update /src/App.tsx, /src/index.css
+15:26:48 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:33:22 [vite] page reload src/types.ts
+15:33:22 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+15:33:22 [vite] hmr update /src/App.tsx, /src/index.css
+15:33:22 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:33:22 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:33:22 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:33:46 [vite] hmr update /src/App.tsx, /src/index.css
+15:33:46 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:33:46 [vite] page reload src/types.ts
+15:33:46 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+15:33:46 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:33:46 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:36:55 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx
+15:37:58 [vite] hmr update /src/App.tsx, /src/index.css, /src/components/CitationPanel.tsx

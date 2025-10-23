@@ -417,7 +417,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             yield final_answer_event
                                             
                                         elif event_type == "answer_error":
-                                            # 答案生成出错
+                                            # 答案生成出错 - 立即返回，不再发送completed事件
                                             error_content = stream_event.get("content", "生成答案时出错")
                                             error_event = {
                                                 "type": "error",
@@ -426,8 +426,18 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             }
                                             print(f"Answer generation error: {error_content}")
                                             yield error_event
+                                            
+                                            # 发送completed事件后立即返回
+                                            completed_event = {
+                                                "type": "completed",
+                                                "content": "答案生成失败，流程结束",
+                                                "timestamp": datetime.now().isoformat()
+                                            }
+                                            print(f"Yielding completed event (after error): {completed_event}")
+                                            yield completed_event
+                                            return  # 立即返回，避免后续处理
                                     
-                                    # 发送完成事件
+                                    # 发送完成事件（正常流程）
                                     completed_event = {
                                         "type": "completed",
                                         "content": "基于检索内容生成答案完成",

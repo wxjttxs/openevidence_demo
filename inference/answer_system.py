@@ -418,8 +418,13 @@ Example:
             for citation in citations:
                 citation_id = citation.get("id", "")
                 title = citation.get("title", "")
-                preview = citation.get("preview", "")
-                final_answer += f"[{citation_id}] {title} {preview}\n"
+                full_content = citation.get("full_content", "")
+                
+                # 截取前30个字作为预览
+                preview = full_content[:30] if len(full_content) > 30 else full_content
+                
+                # 格式：[编号] 文章题目（换行）参考片段（前30字）
+                final_answer += f"[{citation_id}] {title}\n{preview}\n"
         
         print(f"[DEBUG] Final formatted answer: {final_answer}")
         return final_answer

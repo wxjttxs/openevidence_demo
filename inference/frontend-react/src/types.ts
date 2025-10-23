@@ -2,6 +2,7 @@ export interface StreamEvent {
   type: string;
   content: string;
   timestamp?: string;
+  session_id?: string; // 会话ID
   round?: number;
   tool_name?: string;
   tool_args?: Record<string, unknown>;
@@ -32,6 +33,7 @@ export interface Message {
   type: 'user' | 'assistant' | 'thinking' | 'tool-call' | 'tool-result' | 'error' | 'final-answer' | 'answer-streaming' | 'system';
   content: string;
   timestamp: string;
+  sessionId?: string; // 会话ID
   metadata?: {
     round?: number;
     tool_name?: string;

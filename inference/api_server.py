@@ -12,7 +12,7 @@ import uuid
 from typing import Dict, Generator, Optional
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
@@ -29,7 +29,8 @@ MODEL_PATH = os.getenv('MODEL_PATH', '/path/to/your/model')
 MAX_CONCURRENT_REQUESTS = int(os.getenv('MAX_CONCURRENT_REQUESTS', 3))  # 最大并发数
 processing_semaphore = threading.Semaphore(MAX_CONCURRENT_REQUESTS)  # 信号量控制并发
 active_sessions = {}  # 跟踪活跃的会话
-session_lock = threading.Lock()  # 仅用于保护active_sessions字典
+global_citations = {}  # 全局存储所有 citations 数据（按 citation_id 索引）
+session_lock = threading.Lock()  # 仅用于保护active_sessions和global_citations字典
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -237,20 +238,38 @@ async def chat_stream(request: ChatRequest):
                     if "is_streaming" in event:
                         response_data["is_streaming"] = event["is_streaming"]
                     if "answer_data" in event:
-                        # 优化：截断 citations 中的 full_content，避免数据过大
+                        # 优化：为 citations 添加 preview 字段（前50字）
                         answer_data = event["answer_data"]
                         if isinstance(answer_data, dict) and "citations" in answer_data:
-                            truncated_citations = []
-                            for citation in answer_data.get("citations", []):
-                                truncated_citation = citation.copy()
-                                # 限制 full_content 最多 500 字符
-                                if "full_content" in truncated_citation:
-                                    full_content = truncated_citation["full_content"]
-                                    if len(full_content) > 500:
-                                        truncated_citation["full_content"] = full_content[:500] + "..."
-                                truncated_citations.append(truncated_citation)
+                            full_citations = answer_data.get("citations", [])
+                            
+                            # 保存完整的 citations 到全局存储（供后续接口查询）
+                            with session_lock:
+                                for citation in full_citations:
+                                    citation_id = citation.get("id")
+                                    full_content = citation.get("full_content", "")
+                                    if citation_id:
+                                        # 使用 citation_id 作为全局唯一键
+                                        global_citations[str(citation_id)] = {
+                                            "id": citation_id,
+                                            "title": citation.get("title", ""),
+                                            "full_content": full_content
+                                        }
+                            
+                            # 处理发送给前端的 citations（只包含 preview）
+                            processed_citations = []
+                            for citation in full_citations:
+                                processed_citation = {
+                                    "id": citation.get("id"),
+                                    "title": citation.get("title", ""),
+                                }
+                                # 添加 preview 字段（前30字）
+                                if "full_content" in citation:
+                                    full_content = citation["full_content"]
+                                    processed_citation["preview"] = full_content[:30] if len(full_content) > 30 else full_content
+                                processed_citations.append(processed_citation)
                             answer_data = answer_data.copy()
-                            answer_data["citations"] = truncated_citations
+                            answer_data["citations"] = processed_citations
                         response_data["answer_data"] = answer_data
                     
                     # 检查是否是 completed 事件
@@ -267,20 +286,22 @@ async def chat_stream(request: ChatRequest):
                         
                         yield f"data: {json_str}\n\n"
                     except Exception as json_error:
+                        # JSON序列化失败：只记录日志，不发送error事件给前端（避免重复错误卡片）
                         print(f"❌ [Session {session_id[:8]}] JSON序列化失败: {str(json_error)}")
                         print(f"   Event type: {response_data.get('type')}")
                         import traceback
                         traceback.print_exc()
-                        # 尝试发送简化的错误消息
+                        # 尝试发送简化版本（只包含基本字段）
                         try:
-                            error_data = {
-                                "type": "error",
-                                "content": f"数据序列化失败: {str(json_error)}",
+                            simple_data = {
+                                "type": response_data.get("type", "unknown"),
+                                "content": str(response_data.get("content", ""))[:500],  # 截断内容
                                 "session_id": session_id,
-                                "timestamp": datetime.now().isoformat()
+                                "timestamp": response_data.get("timestamp", datetime.now().isoformat())
                             }
-                            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+                            yield f"data: {json.dumps(simple_data, ensure_ascii=False)}\n\n"
                         except:
+                            print(f"❌ [Session {session_id[:8]}] 连简化数据也无法序列化，跳过此事件")
                             pass
                 
                 # 只有当 agent 没有发送 completed 事件时，才补发一个
@@ -421,6 +442,57 @@ async def get_sessions():
         "total": len(active_sessions),
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get("/citation/{citation_id}")
+async def get_citation_detail(citation_id: str):
+    """
+    获取引用的完整内容（公共接口，不依赖session）
+    
+    Args:
+        citation_id: 引用ID
+        
+    Returns:
+        完整的引用内容
+    """
+    try:
+        with session_lock:
+            # 尝试多种 ID 格式（可能是字符串或数字）
+            citation_data = None
+            for possible_id in [citation_id, str(citation_id)]:
+                if possible_id in global_citations:
+                    citation_data = global_citations[possible_id]
+                    break
+            
+            if citation_data is None:
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "error": "Citation not found",
+                        "message": f"引用 [{citation_id}] 不存在",
+                        "citation_id": citation_id,
+                        "available_citations": list(global_citations.keys())[:10]  # 只返回前10个
+                    }
+                )
+        
+        # 返回完整内容
+        return {
+            "citation_id": citation_data["id"],
+            "title": citation_data["title"],
+            "full_content": citation_data["full_content"],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ 获取引用详情失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal server error",
+                "message": f"获取引用详情失败: {str(e)}"
+            }
+        )
 
 if __name__ == "__main__":
     print("🔧 启动配置:")

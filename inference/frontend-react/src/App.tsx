@@ -3,8 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from './components/Header'
 import ChatContainer from './components/ChatContainer'
 import MessageInput from './components/MessageInput'
+import CitationPanel from './components/CitationPanel'
 import { Message, ConnectionStatus } from './types'
 import { checkAPIHealth, sendStreamingChat } from './services/api'
+
+interface Citation {
+  id: number | string
+  title: string
+  full_content?: string
+}
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([
@@ -26,6 +33,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [status, setStatus] = useState<ConnectionStatus>('disconnected')
   const [statusText, setStatusText] = useState('正在连接...')
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
 
   // 检查API状态
   useEffect(() => {
@@ -67,13 +75,17 @@ function App() {
         content.trim(),
         (newMessage) => {
           setMessages(prev => {
-            // 检查是否需要更新最后一条消息
-            const lastMsg = prev[prev.length - 1]
-            if (lastMsg && lastMsg.id === newMessage.id) {
-              // 更新现有消息
-              return [...prev.slice(0, -1), newMessage]
+            // 在整个消息列表中查找相同ID的消息
+            const existingIndex = prev.findIndex(msg => msg.id === newMessage.id)
+            
+            if (existingIndex !== -1) {
+              // 找到了，更新现有消息
+              const updated = [...prev]
+              updated[existingIndex] = newMessage
+              return updated
             }
-            // 添加新消息
+            
+            // 没找到，添加新消息
             return [...prev, newMessage]
           })
           
@@ -154,6 +166,14 @@ function App() {
     }
   }, [isProcessing])
 
+  const handleCitationClick = useCallback((citation: Citation) => {
+    setSelectedCitation(citation)
+  }, [])
+
+  const handleCloseCitation = useCallback(() => {
+    setSelectedCitation(null)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen bg-dark-900 bg-tech-grid overflow-hidden">
       {/* 背景渐变效果 */}
@@ -165,7 +185,11 @@ function App() {
         <Header status={status} statusText={statusText} />
         
         <main className="flex-1 overflow-hidden">
-          <ChatContainer messages={messages} isProcessing={isProcessing} />
+          <ChatContainer 
+            messages={messages} 
+            isProcessing={isProcessing}
+            onCitationClick={handleCitationClick}
+          />
         </main>
 
         <div className="border-t border-dark-700/50 bg-dark-800/80 backdrop-blur-sm">
@@ -178,6 +202,12 @@ function App() {
       </div>
 
       {/* 移除全屏加载层，改为在消息流中显示进度 */}
+
+      {/* 引用详情侧边栏 */}
+      <CitationPanel 
+        citation={selectedCitation}
+        onClose={handleCloseCitation}
+      />
     </div>
   )
 }

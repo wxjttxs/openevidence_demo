@@ -77,6 +77,7 @@ export async function sendStreamingChat(
     let buffer = ''
     let currentMessageId: string | null = null
     let hasCompleted = false
+    let hasFinalAnswer = false  // 标记是否已收到最终答案
 
     try {
       let chunkCount = 0
@@ -97,6 +98,17 @@ export async function sendStreamingChat(
           if (line.startsWith('data: ')) {
             try {
               const data: StreamEvent = JSON.parse(line.slice(6))
+              
+              // 标记是否收到最终答案
+              if (data.type === 'final_answer') {
+                hasFinalAnswer = true
+              }
+              
+              // 如果已经有最终答案，忽略后续的 error 事件（避免重复错误卡片）
+              if (data.type === 'error' && hasFinalAnswer) {
+                console.log('⚠️ 已有最终答案，忽略error事件:', data.content)
+                continue  // 跳过这个 error 事件
+              }
               
               // 标记是否收到完成事件（包括所有结束情况）
               const endEventTypes = ['completed', 'error', 'timeout', 'no_answer', 'cancelled']
@@ -170,11 +182,12 @@ export async function sendStreamingChat(
 }
 
 function handleStreamEvent(event: StreamEvent, currentMessageId: string | null): Message | null {
-  const { type, content, timestamp, round, tool_name, tool_args, result, code, judgment, answer_data, accumulated, is_streaming } = event
+  const { type, content, timestamp, session_id, round, tool_name, tool_args, result, code, judgment, answer_data, accumulated, is_streaming } = event
 
   const baseMessage = {
     id: currentMessageId || `msg-${Date.now()}-${Math.random()}`,
     timestamp: timestamp || new Date().toISOString(),
+    sessionId: session_id, // 保存 session_id
   }
 
   switch (type) {
@@ -322,7 +335,7 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       // 流式最终答案片段 - 直接使用final-answer样式渲染
       return {
         ...baseMessage,
-        id: currentMessageId || 'final-answer-streaming', // 使用固定ID，所有流式片段更新同一条消息
+        id: currentMessageId || 'final-answer', // 使用固定ID
         type: 'final-answer',
         content: content, // 直接使用content（已是累积内容）
         eventType: 'final-answer',
@@ -341,9 +354,10 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       }
 
     case 'final_answer':
+      // 最终答案 - 使用相同的ID更新流式消息
       return {
         ...baseMessage,
-        id: `final-${Date.now()}`,
+        id: currentMessageId || 'final-answer', // 使用相同的固定ID
         type: 'final-answer',
         content,
         eventType: 'final-answer',
@@ -401,6 +415,40 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
     default:
       console.log('Unknown event type:', type, event)
       return null
+  }
+}
+
+/**
+ * 获取引用的完整内容（公共接口）
+ * @param citationId - 引用ID
+ * @returns 完整的引用内容
+ */
+export async function getCitationDetail(
+  citationId: string | number
+): Promise<string> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/citation/${citationId}`,
+      {
+        method: 'GET',
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('引用内容不存在或会话已过期')
+      }
+      throw new Error(`获取引用详情失败 (HTTP ${response.status})`)
+    }
+
+    const data = await response.json()
+    return data.full_content || ''
+  } catch (error) {
+    console.error('获取引用详情失败:', error)
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('获取引用详情失败，请稍后重试')
   }
 }
 

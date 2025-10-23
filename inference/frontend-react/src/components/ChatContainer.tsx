@@ -3,12 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import MessageComponent from './Message'
 import { Message } from '../types'
 
+interface Citation {
+  id: number | string
+  title: string
+  full_content?: string
+}
+
 interface ChatContainerProps {
   messages: Message[]
   isProcessing: boolean
+  onCitationClick: (citation: Citation) => void
 }
 
-export default function ChatContainer({ messages, isProcessing }: ChatContainerProps) {
+export default function ChatContainer({ messages, isProcessing, onCitationClick }: ChatContainerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -38,7 +45,7 @@ export default function ChatContainer({ messages, isProcessing }: ChatContainerP
                 delay: index === messages.length - 1 ? 0 : 0,
               }}
             >
-              <MessageComponent message={message} />
+              <MessageComponent message={message} onCitationClick={onCitationClick} />
             </motion.div>
           ))}
         </AnimatePresence>
