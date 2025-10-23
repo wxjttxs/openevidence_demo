@@ -324,6 +324,23 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
       )
     }
     
+    // 对于thinking消息，如果是流式中，添加光标效果
+    if (message.type === 'thinking') {
+      return (
+        <div className="text-dark-200 whitespace-pre-wrap">
+          {message.content}
+          {/* 流式thinking中显示闪烁光标 */}
+          {message.isStreaming && (
+            <motion.span
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+              className="inline-block w-2 h-5 ml-1 bg-yellow-500 rounded-sm align-middle"
+            />
+          )}
+        </div>
+      )
+    }
+    
     return (
       <div className="text-dark-200 whitespace-pre-wrap">
         {message.content}
@@ -342,12 +359,16 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-pink-500/10 pointer-events-none" />
       )}
       
-      {/* 流式生成时的微光效果 - 适用于 final-answer 和 answer-streaming */}
+      {/* 流式生成时的微光效果 - 适用于 final-answer、answer-streaming 和 thinking */}
       {(message.isStreaming || message.eventType === 'answer-streaming') && (
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-500/10 to-transparent pointer-events-none"
+          className={`absolute inset-0 bg-gradient-to-r from-transparent to-transparent pointer-events-none ${
+            message.type === 'thinking' 
+              ? 'via-yellow-500/10' 
+              : 'via-primary-500/10'
+          }`}
         />
       )}
 

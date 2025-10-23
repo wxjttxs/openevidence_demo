@@ -223,18 +223,32 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
     case 'thinking_start':
       return {
         ...baseMessage,
-        id: `thinking-${Date.now()}`,
+        id: currentMessageId || 'thinking-current',  // 使用固定ID
         type: 'thinking',
         content: '正在思考...',
         eventType: 'thinking-start',
+        isStreaming: true,
+      }
+
+    case 'thinking_chunk':
+      // 流式thinking片段 - 使用固定ID更新同一条消息
+      return {
+        ...baseMessage,
+        id: currentMessageId || 'thinking-current',  // 使用固定ID
+        type: 'thinking',
+        content: accumulated || content,  // 使用累积内容
+        eventType: 'thinking-chunk',
+        isStreaming: is_streaming !== false,
       }
 
     case 'thinking':
       return {
         ...baseMessage,
+        id: currentMessageId || 'thinking-current',  // 使用固定ID
         type: 'thinking',
         content,
         eventType: 'thinking',
+        isStreaming: false,
       }
 
     case 'tool_call_start':

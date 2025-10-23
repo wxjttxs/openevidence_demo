@@ -78,6 +78,65 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 print("Error: All retry attempts have been exhausted. The call has failed.")
         
         return f"vllm server error!!!"
+    
+    def call_server_stream(self, msgs, planning_port, max_tries=3):
+        """流式调用vLLM服务器"""
+        from openai import OpenAI, APIError, APIConnectionError, APITimeoutError
+        import random
+        
+        openai_api_key = "EMPTY"
+        openai_api_base = f"http://127.0.0.1:{planning_port}/v1"
+
+        client = OpenAI(
+            api_key=openai_api_key,
+            base_url=openai_api_base,
+            timeout=600.0,
+        )
+
+        base_sleep_time = 1 
+        
+        for attempt in range(max_tries):
+            try:
+                print(f"--- Attempting to call the service (stream), try {attempt + 1}/{max_tries} ---")
+                stream = client.chat.completions.create(
+                    model=self.llm_local_path,
+                    messages=msgs,
+                    stop=["\n<tool_response>", "<tool_response>"],
+                    temperature=self.llm_generate_cfg.get('temperature', 0.6),
+                    top_p=self.llm_generate_cfg.get('top_p', 0.95),
+                    max_tokens=10000,
+                    presence_penalty=self.llm_generate_cfg.get('presence_penalty', 1.1),
+                    stream=True  # 启用流式
+                )
+                
+                accumulated_content = ""
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        content_piece = chunk.choices[0].delta.content
+                        accumulated_content += content_piece
+                        yield content_piece  # 逐块yield
+                
+                if accumulated_content.strip():
+                    print("--- Streaming service call successful ---")
+                    return  # 成功完成
+                else:
+                    print(f"Warning: Attempt {attempt + 1} received an empty response.")
+
+            except (APIError, APIConnectionError, APITimeoutError) as e:
+                print(f"Error: Attempt {attempt + 1} failed with an API or network error: {e}")
+            except Exception as e:
+                print(f"Error: Attempt {attempt + 1} failed with an unexpected error: {e}")
+
+            if attempt < max_tries - 1:
+                sleep_time = base_sleep_time * (2 ** attempt) + random.uniform(0, 1)
+                sleep_time = min(sleep_time, 30) 
+                
+                print(f"Retrying in {sleep_time:.2f} seconds...")
+                time.sleep(sleep_time)
+            else:
+                print("Error: All retry attempts have been exhausted. The call has failed.")
+        
+        yield "vllm server error!!!"
         
     def count_tokens(self, messages, model="gpt-4o"):
         """计算token数量"""
@@ -223,20 +282,60 @@ class StreamingReactAgent(MultiTurnReactAgent):
             yield thinking_start_event
             
             try:
-                print(f"Calling LLM server on port {planning_port}")
-                content = self.call_server(messages, planning_port)
-                print(f"LLM response received: {content[:200]}...")
+                print(f"Calling LLM server (stream) on port {planning_port}")
                 
-                # 处理思考内容
-                if '<think>' in content and '</think>' in content:
-                    think_content = content.split('<think>')[1].split('</think>')[0]
-                    thinking_event = {
-                        "type": "thinking",
-                        "content": think_content.strip(),
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    print(f"Yielding thinking event: {thinking_event}")
-                    yield thinking_event
+                # 使用流式方式获取LLM响应
+                accumulated_content = ""
+                in_think_tag = False
+                think_buffer = ""
+                
+                for chunk in self.call_server_stream(messages, planning_port):
+                    accumulated_content += chunk
+                    
+                    # 实时检测和提取 <think> 标签内容
+                    if not in_think_tag and '<think>' in accumulated_content:
+                        in_think_tag = True
+                        # 找到 <think> 后的内容
+                        start_pos = accumulated_content.find('<think>') + len('<think>')
+                        think_buffer = accumulated_content[start_pos:]
+                        chunk_to_send = think_buffer
+                    elif in_think_tag:
+                        # 检查是否遇到结束标签
+                        if '</think>' in chunk:
+                            # 提取结束标签前的内容
+                            end_pos = chunk.find('</think>')
+                            chunk_to_send = chunk[:end_pos]
+                            think_buffer += chunk_to_send
+                            in_think_tag = False
+                            
+                            # 发送最后一块thinking内容
+                            if chunk_to_send:
+                                thinking_chunk_event = {
+                                    "type": "thinking_chunk",
+                                    "content": chunk_to_send,
+                                    "accumulated": think_buffer.strip(),
+                                    "is_complete": True,
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                yield thinking_chunk_event
+                        else:
+                            # 继续累积thinking内容
+                            think_buffer += chunk
+                            chunk_to_send = chunk
+                        
+                        # 发送thinking片段（如果还在think标签内）
+                        if in_think_tag and chunk_to_send:
+                            thinking_chunk_event = {
+                                "type": "thinking_chunk",
+                                "content": chunk_to_send,
+                                "accumulated": think_buffer.strip(),
+                                "is_complete": False,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            yield thinking_chunk_event
+                
+                content = accumulated_content
+                print(f"LLM response received (stream completed): {content[:200]}...")
                 
                 # 清理tool_response标记
                 if '<tool_response>' in content:
