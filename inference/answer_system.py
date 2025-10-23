@@ -50,13 +50,27 @@ class AnswerJudgmentSystem:
 {sources_content}
 
 要求：
-1. 基于检索内容回答问题，确保准确性
-2. 在答案中使用引用标号[1][2][3]等，每个重要信息都要有引用
-3. 在答案末尾提供引用列表，格式为：文章题目 + 空格 + 引用内容前15字 + "...",列表元素换行显示
-4. 确保每个引用都对应检索内容中的具体信息
-5. 引用内容的省略号("...")应该可以点击展开显示完整内容
+When providing final answers, you MUST use academic citation format:
+1. Include numbered citations [1][2][3] in your answer text
+2. Provide a reference list at the end with format: "Document Title\\n relevant part"
+3. Make citations clickable by using the proper format
+4. make sure the reference not the same
 
-请以JSON格式回答：
+Example:
+"糖尿病主要分为1型糖尿病[1]和2型糖尿病[2]，还有妊娠糖尿病等特殊类型[3]。
+
+参考文献:
+
+[1] 糖尿病诊疗指南.pdf 
+要点：·饮食质量和能量控制是血糖管理的基础...
+
+[2] 内分泌学教材.pdf 
+该段落总结了生活方式医学在2型糖尿病（T2D）及糖尿病前期预防和管理中的关键作用...
+
+[3] 妊娠期疾病手册.pdf 
+行为与生活方式干预的原则..."
+
+请以JSON格式回答（注意JSON格式的正确性）：
 {{
     "answer": "完整的答案内容，包含引用标号[1][2][3]等",
     "citations": [
@@ -64,8 +78,7 @@ class AnswerJudgmentSystem:
             "id": 1,
             "title": "文档标题",
             "preview": "引用内容前30字...",
-            "full_content": "完整的引用内容",
-            "similarity": 0.95
+            "full_content": "完整的引用内容"
         }}
     ]
 }}"""
@@ -96,7 +109,7 @@ class AnswerJudgmentSystem:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.3,
-                max_tokens=1000
+                max_tokens=10000
             )
             
             content = response.choices[0].message.content
@@ -123,8 +136,121 @@ class AnswerJudgmentSystem:
                 "missing_info": "无法评估"
             }
 
+    def generate_answer_with_citations_stream(self, question: str, retrieval_results: List[Dict]):
+        """流式生成带引用的答案 - 只发送纯文本，前端无需解析JSON"""
+        try:
+            # 准备来源内容
+            sources_content = self.create_sources_content_for_citation(retrieval_results)
+            
+            print(f"[DEBUG] Streaming answer generation for question: {question[:100]}...")
+            print(f"[DEBUG] Sources content length: {len(sources_content)}")
+            
+            messages = [
+                {
+                    "role": "user",
+                    "content": self.citation_prompt.format(
+                        question=question,
+                        sources_content=sources_content
+                    )
+                }
+            ]
+            
+            # 使用流式API
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=0.5,
+                max_tokens=4096,
+                stream=True  # 启用流式
+            )
+            
+            accumulated_content = ""
+            in_answer_field = False
+            answer_text = ""
+            brace_count = 0
+            
+            # 逐块接收并智能提取answer字段内容
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content_piece = chunk.choices[0].delta.content
+                    accumulated_content += content_piece
+                    
+                    # 检测是否进入answer字段
+                    if not in_answer_field and '"answer"' in accumulated_content:
+                        in_answer_field = True
+                        # 找到answer字段开始位置
+                        answer_start = accumulated_content.find('"answer"')
+                        # 跳过 "answer": "
+                        remaining = accumulated_content[answer_start:]
+                        colon_pos = remaining.find(':')
+                        if colon_pos != -1:
+                            after_colon = remaining[colon_pos + 1:].lstrip()
+                            if after_colon.startswith('"'):
+                                # 找到开始的引号后的内容
+                                answer_text = after_colon[1:]
+                    
+                    # 如果已经在answer字段内，累积内容
+                    if in_answer_field:
+                        # 检测是否遇到了结束引号（排除转义的\"）
+                        for char in content_piece:
+                            if char == '"' and (not answer_text or answer_text[-1] != '\\'):
+                                # 遇到未转义的引号，可能是answer字段结束
+                                in_answer_field = False
+                                break
+                            else:
+                                answer_text += char
+                        
+                        # 只发送answer字段的纯文本内容
+                        if in_answer_field and content_piece:
+                            # 清理可能的转义字符
+                            clean_piece = content_piece.replace('\\n', '\n').replace('\\"', '"')
+                            
+                            yield {
+                                "type": "answer_chunk",
+                                "content": clean_piece,
+                            }
+            
+            print(f"[DEBUG] Stream completed, total length: {len(accumulated_content)}")
+            print(f"[DEBUG] Extracted answer length: {len(answer_text)}")
+            
+            # 流式完成后，解析完整内容以提取 citations
+            try:
+                # 清理可能的markdown格式
+                content = accumulated_content
+                if content.startswith("```json"):
+                    content = content.replace("```json", "").replace("```", "").strip()
+                elif content.startswith("```"):
+                    content = content.replace("```", "").strip()
+                
+                result = json.loads(content)
+                print(f"[DEBUG] Parsed complete answer, citations count: {len(result.get('citations', []))}")
+                
+                # 发送最终的完整结果（包含 citations）
+                yield {
+                    "type": "answer_complete",
+                    "answer_data": result
+                }
+                
+            except json.JSONDecodeError as e:
+                print(f"[DEBUG] JSON parse failed: {e}")
+                # 如果不是有效JSON，尝试提取
+                result = self._extract_answer_from_text(accumulated_content)
+                yield {
+                    "type": "answer_complete",
+                    "answer_data": result
+                }
+                
+        except Exception as e:
+            print(f"[DEBUG] Error in streaming answer: {e}")
+            import traceback
+            traceback.print_exc()
+            yield {
+                "type": "answer_error",
+                "content": f"生成答案时出错: {str(e)}"
+            }
+    
     def generate_answer_with_citations(self, question: str, retrieval_results: List[Dict]) -> Dict:
-        """生成带引用的答案"""
+        """生成带引用的答案（非流式版本，保留用于兼容）"""
         try:
             # 准备来源内容
             sources_content = self.create_sources_content_for_citation(retrieval_results)
@@ -146,7 +272,7 @@ class AnswerJudgmentSystem:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.5,
-                max_tokens=2000
+                max_tokens=4096
             )
             
             content = response.choices[0].message.content

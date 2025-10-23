@@ -1,128 +1,124 @@
 #!/bin/bash
-source .env
-# 简化启动脚本 - 仅用于测试Web界面，不启动vLLM
-# 加载conda的初始化脚本
-source ~/anaconda3/etc/profile.d/conda.sh  # 或者你的conda安装路径
 
-# 激活conda环境
-conda activate react_infer_env
-export TORCHDYNAMO_VERBOSE=1
-export TORCHDYNAMO_DISABLE=1
-export PYTHONDONTWRITEBYTECODE=1
-
-##############参数配置################
-export MODEL_PATH=${MODEL_PATH:-"/path/to/your/model"}
-export TEMPERATURE=${TEMPERATURE:-0.85}
-export PRESENCE_PENALTY=${PRESENCE_PENALTY:-1.1}
-export TOP_P=${TOP_P:-0.95}
-
-# API服务端口
-export API_PORT=${API_PORT:-5006}
-# Web界面端口
-export WEB_PORT=${WEB_PORT:-8086}
-
-# 设置vLLM端口信息 - 确保与已启动的vLLM服务器端口一致
-export PLANNING_PORTS=${PLANNING_PORTS:-6001}
-
-## API密钥配置 - 请设置环境变量或修改为您的密钥
-export SERPER_KEY_ID=${SERPER_KEY_ID:-"your_serper_key_here"}
-export JINA_API_KEYS=${JINA_API_KEYS:-"your_jina_key_here"}
-export API_KEY=${API_KEY:-"your_api_key_here"}
-export API_BASE=${API_BASE:-"https://api.huatuogpt.cn/v1"}
-export SUMMARY_MODEL_NAME=${SUMMARY_MODEL_NAME:-"qwen3-32b"}
-export DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-"your_dashscope_key_here"}
-export DASHSCOPE_API_BASE=${DASHSCOPE_API_BASE:-"https://dashscope.aliyuncs.com/compatible-mode/v1"}
-export VIDEO_MODEL_NAME=${VIDEO_MODEL_NAME:-"qwen-vl-max"}
-export VIDEO_ANALYSIS_MODEL_NAME=${VIDEO_ANALYSIS_MODEL_NAME:-"qwen-vl-max"}
-
-# 沙盒配置
-ENDPOINTS_STRING=${SANDBOX_ENDPOINT:-"your_sandbox_endpoint"}
-export SANDBOX_FUSION_ENDPOINT="$ENDPOINTS_STRING"
-export TORCH_COMPILE_CACHE_DIR="./cache"
-
-# IDP配置
-export USE_IDP=${USE_IDP:-"True"}
-export IDP_KEY_ID=${IDP_KEY_ID:-"your_idp_key_id_here"}
-export IDP_KEY_SECRET=${IDP_KEY_SECRET:-"your_idp_key_secret_here"}
-
-echo "=== Tongyi DeepResearch 完整服务启动 ==="
-echo ""
-echo "注意：此模式启动推理API服务和前端界面，不启动vLLM服务器"
-echo "如需完整功能，请先手动启动vLLM服务器"
-echo ""
-echo "步骤1: 启动推理API服务 (端口 $API_PORT)"
-echo "步骤2: 启动前端界面 (端口 $WEB_PORT)"
-echo ""
-
+# 前端Web界面启动脚本 - React + TypeScript版本
 cd "$( dirname -- "${BASH_SOURCE[0]}" )"
 
-# 函数：检查端口是否可用
-check_port() {
-    local port=$1
-    local service_name=$2
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "❌ 端口 $port 已被占用，无法启动 $service_name"
-        return 1
+# 加载环境变量
+if [ -f .env ]; then
+    source .env
+fi
+
+# Web界面端口
+export WEB_PORT=${WEB_PORT:-8088}
+export API_PORT=${API_PORT:-5006}
+
+# 前端目录
+FRONTEND_DIR="./frontend-react"
+PID_FILE="./web_server.pid"
+
+echo "=== openEvidence 前端服务启动 ==="
+echo ""
+echo "注意：此脚本仅启动前端界面"
+echo "请确保API服务已在端口 $API_PORT 上运行"
+echo ""
+echo "前端端口: $WEB_PORT"
+echo "API端口: $API_PORT"
+echo ""
+
+# 检查frontend-react目录是否存在
+if [ ! -d "$FRONTEND_DIR" ]; then
+    echo "❌ 前端目录不存在: $FRONTEND_DIR"
+    exit 1
+fi
+
+cd "$FRONTEND_DIR"
+
+# 检查是否已安装依赖
+if [ ! -d "node_modules" ]; then
+    echo "📦 首次运行，正在安装依赖..."
+    echo ""
+    
+    # 检查npm是否安装
+    if ! command -v npm &> /dev/null; then
+        echo "❌ 未找到npm，请先安装Node.js"
+        exit 1
     fi
-    return 0
-}
-
-# 函数：等待API服务启动
-wait_for_api() {
-    local max_attempts=30
-    local attempt=0
     
-    echo "⏳ 等待API服务启动..."
-    while [ $attempt -lt $max_attempts ]; do
-        if curl -s http://localhost:$API_PORT/health >/dev/null 2>&1; then
-            echo "✅ API服务启动成功"
-            return 0
+    npm install
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ 依赖安装失败"
+        exit 1
+    fi
+    
+    echo ""
+    echo "✅ 依赖安装完成"
+    echo ""
+fi
+
+# 创建.env文件（如果不存在）
+if [ ! -f ".env" ]; then
+    echo "📝 创建.env配置文件..."
+    cat > .env << EOF
+VITE_API_URL=http://$(hostname -I | awk '{print $1}'):${API_PORT}
+WEB_PORT=${WEB_PORT}
+API_PORT=${API_PORT}
+EOF
+fi
+
+# 清理旧的PID文件
+if [ -f "../$PID_FILE" ]; then
+    OLD_PID=$(cat "../$PID_FILE")
+    if kill -0 $OLD_PID 2>/dev/null; then
+        echo "⚠️  发现运行中的前端服务 (PID: $OLD_PID)"
+        read -p "是否停止并重启? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            kill $OLD_PID 2>/dev/null
+            sleep 2
+        else
+            exit 0
         fi
-        attempt=$((attempt + 1))
-        echo "   尝试 $attempt/$max_attempts..."
-        sleep 2
-    done
-    
-    echo "❌ API服务启动超时"
-    return 1
-}
+    fi
+    rm -f "../$PID_FILE"
+fi
 
-# 检查端口可用性
-if ! check_port $API_PORT "API服务"; then
+# 检查端口是否被占用
+if lsof -Pi :$WEB_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "❌ 端口 $WEB_PORT 已被占用"
     exit 1
 fi
 
-if ! check_port $WEB_PORT "前端服务"; then
-    exit 1
-fi
+echo "🚀 启动前端开发服务器..."
+echo ""
 
-# 启动API服务（后台运行）
-echo "🚀 启动推理API服务..."
-python3 -u api_server.py &
-API_PID=$!
+# 启动Vite开发服务器（后台运行）
+WEB_PORT=$WEB_PORT npm run dev > ../logs/web_server.log 2>&1 &
+WEB_PID=$!
 
-# 等待API服务启动
-if wait_for_api; then
+# 保存PID
+echo $WEB_PID > "../$PID_FILE"
+
+# 等待服务启动
+sleep 3
+
+# 检查进程是否还在运行
+if kill -0 $WEB_PID 2>/dev/null; then
+    echo "✅ 前端服务启动成功！"
     echo ""
-    echo "🌐 启动前端界面..."
-    echo "前端界面将在 http://localhost:$WEB_PORT 上运行"
-    echo "API服务运行在 http://localhost:$API_PORT"
+    echo "   PID: $WEB_PID"
+    echo "   端口: $WEB_PORT"
+    echo "   访问地址: http://$(hostname -I | awk '{print $1}'):$WEB_PORT"
+    echo "   日志文件: ../logs/web_server.log"
     echo ""
-    echo "按 Ctrl+C 停止所有服务"
+    echo "服务已在后台运行，关闭终端不影响服务"
     echo ""
-    
-    # 启动前端服务
-    python3 -u web_server.py &
-    WEB_PID=$!
-    
-    # 等待用户中断
-    trap "echo ''; echo '🛑 正在停止服务...'; kill $API_PID $WEB_PID 2>/dev/null; exit 0" INT
-    
-    # 等待进程结束
-    wait
+    echo "查看日志: tail -f logs/web_server.log"
+    echo "停止服务: kill $WEB_PID 或 kill \$(cat ../$PID_FILE)"
+    echo ""
 else
-    echo "❌ 无法启动前端界面，因为API服务启动失败"
-    kill $API_PID 2>/dev/null
+    echo "❌ 前端服务启动失败，请查看日志: ../logs/web_server.log"
+    rm -f "../$PID_FILE"
     exit 1
 fi
 

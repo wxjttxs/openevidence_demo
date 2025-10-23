@@ -25,7 +25,7 @@ class Retrieval(BaseTool):
                 "type": "array", 
                 "items": {"type": "string"},
                 "description": "Document IDs to search in",
-                "default": ["e1a2c85c9ce511f081790242ac1b0006"]
+                "default": []
             },
             "similarity_threshold": {
                 "type": "number",
@@ -51,6 +51,12 @@ class Retrieval(BaseTool):
                 "type": "boolean",
                 "description": "Whether to use highlight",
                 "default": False
+            },
+            "cross_languages": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Cross language search support",
+                "default": ["ch", "en"]
             }
         },
         "required": ["question"]
@@ -88,11 +94,12 @@ class Retrieval(BaseTool):
             request_data = {
                 "question": question,
                 "dataset_ids": params.get("dataset_ids", ["1c9c4d369ce411f093700242ac170006"]),
-                "document_ids": params.get("document_ids", ["e1a2c85c9ce511f081790242ac1b0006"]),
+                "document_ids": params.get("document_ids", []),  # 修复：默认为空数组
                 "similarity_threshold": params.get("similarity_threshold", 0.6),
                 "vector_similarity_weight": params.get("vector_similarity_weight", 0.7),
                 "top_k": params.get("top_k", 4),
-                "keyword": params.get("keyword", True)
+                "keyword": params.get("keyword", True),
+                "cross_languages": params.get("cross_languages", ["ch", "en"])  # 添加跨语言支持
             }
 
             # Debug输出

@@ -1,0 +1,73 @@
+
+> openevidence-frontend@1.0.0 dev
+> vite --host 0.0.0.0 --port ${WEB_PORT:-8088}
+
+
+  VITE v5.4.21  ready in 3849 ms
+
+  ➜  Local:   http://localhost:8088/
+  ➜  Network: http://10.27.127.33:8088/
+  ➜  Network: http://172.25.0.1:8088/
+  ➜  Network: http://192.168.16.1:8088/
+  ➜  Network: http://192.168.96.1:8088/
+  ➜  Network: http://172.18.0.1:8088/
+  ➜  Network: http://172.24.0.1:8088/
+  ➜  Network: http://192.168.80.1:8088/
+  ➜  Network: http://172.19.0.1:8088/
+  ➜  Network: http://172.26.0.1:8088/
+  ➜  Network: http://172.28.0.1:8088/
+  ➜  Network: http://192.168.32.1:8088/
+  ➜  Network: http://172.22.0.1:8088/
+  ➜  Network: http://100.91.121.65:8088/
+  ➜  Network: http://172.31.0.1:8088/
+  ➜  Network: http://192.168.192.1:8088/
+11:14:33 [vite] hmr update /src/App.tsx, /src/index.css
+11:14:44 [vite] hmr update /src/App.tsx, /src/index.css
+11:15:14 [vite] hmr update /src/App.tsx, /src/index.css
+11:45:12 [vite] hmr update /src/App.tsx, /src/index.css
+11:45:28 [vite] hmr update /src/App.tsx, /src/index.css
+11:45:41 [vite] hmr update /src/components/Message.tsx, /src/index.css
+11:46:02 [vite] hmr update /src/App.tsx, /src/index.css
+12:35:07 [vite] hmr update /src/App.tsx, /src/index.css
+12:35:07 [vite] hmr update /src/components/Message.tsx, /src/index.css
+12:35:07 [vite] hmr update /src/App.tsx, /src/index.css
+13:08:58 [vite] hmr update /src/App.tsx, /src/index.css
+13:09:19 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:09:50 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:10:00 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:12:28 [vite] hmr update /src/App.tsx, /src/index.css
+13:12:28 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:15:01 [vite] hmr update /src/App.tsx, /src/index.css
+13:15:11 [vite] hmr update /src/App.tsx, /src/index.css
+13:15:47 [vite] page reload src/types.ts
+13:15:57 [vite] page reload src/types.ts
+13:16:22 [vite] hmr update /src/App.tsx, /src/index.css
+13:16:42 [vite] page reload src/types.ts
+13:16:42 [vite] hmr update /src/App.tsx, /src/index.css
+13:27:14 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:27:33 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:27:59 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:28:10 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:29:05 [vite] hmr update /src/App.tsx, /src/index.css
+13:29:38 [vite] hmr update /src/App.tsx, /src/index.css
+13:29:52 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+13:30:01 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+13:30:29 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:30:39 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:51:38 [vite] hmr update /src/components/Message.tsx, /src/index.css
+13:51:38 [vite] hmr update /src/components/CitationSidebar.tsx, /src/index.css
+13:51:38 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+13:51:38 [vite] hmr update /src/App.tsx, /src/index.css
+14:01:42 [vite] hmr update /src/App.tsx, /src/index.css
+14:01:43 [vite] hmr update /src/components/ChatContainer.tsx, /src/index.css
+14:01:43 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:01:44 [vite] hmr update /src/components/CitationSidebar.tsx, /src/index.css
+14:01:44 [vite] page reload src/components/CitationSidebar.tsx
+14:11:15 [vite] hmr update /src/App.tsx, /src/index.css
+14:11:30 [vite] hmr update /src/App.tsx, /src/index.css
+14:11:39 [vite] page reload src/types.ts
+14:12:02 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:12:14 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:14:02 [vite] hmr update /src/App.tsx, /src/index.css
+14:14:02 [vite] hmr update /src/components/Message.tsx, /src/index.css
+14:14:02 [vite] page reload src/types.ts

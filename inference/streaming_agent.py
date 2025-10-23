@@ -120,17 +120,21 @@ class StreamingReactAgent(MultiTurnReactAgent):
         else:
             return f"Error: Tool {tool_name} not found"
         
-    def stream_run(self, question: str, planning_port: int = 6001) -> Generator[Dict, None, None]:
+    def stream_run(self, question: str, planning_port: int = 6001, cancelled: dict = None) -> Generator[Dict, None, None]:
         """
         流式运行推理过程，实时输出各个阶段的信息
         
         Args:
             question: 用户问题
             planning_port: vLLM服务器端口
+            cancelled: 取消标记字典 {"value": False}，当设置为 True 时中断处理
             
         Yields:
             Dict: 包含当前阶段信息的字典
         """
+        # 初始化 cancelled 标记
+        if cancelled is None:
+            cancelled = {"value": False}
         print(f"=== StreamingReactAgent.stream_run START ===")
         print(f"Question: {question}")
         print(f"Planning port: {planning_port}")
@@ -159,6 +163,25 @@ class StreamingReactAgent(MultiTurnReactAgent):
         print(f"Starting main loop, max calls: {MAX_LLM_CALL_PER_RUN}")
         
         while num_llm_calls_available > 0:
+            # 检查客户端是否断开
+            if cancelled["value"]:
+                cancelled_event = {
+                    "type": "cancelled",
+                    "content": "检测到客户端断开，停止处理",
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"⚠️ 客户端断开，停止推理循环")
+                yield cancelled_event
+                
+                completed_event = {
+                    "type": "completed",
+                    "content": "客户端断开，流程结束",
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"Yielding completed event (cancelled): {completed_event}")
+                yield completed_event
+                return
+            
             # 检查超时
             if time.time() - start_time > 150 * 60:  # 150分钟
                 timeout_event = {
@@ -168,6 +191,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 }
                 print(f"Yielding timeout event: {timeout_event}")
                 yield timeout_event
+                
+                completed_event = {
+                    "type": "completed",
+                    "content": "推理超时，流程结束",
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"Yielding completed event (timeout): {completed_event}")
+                yield completed_event
                 return
                 
             round_num += 1
@@ -217,6 +248,25 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 
                 # 检查工具调用
                 if '<tool_call>' in content and '</tool_call>' in content:
+                    # 在执行工具调用前检查客户端是否断开
+                    if cancelled["value"]:
+                        cancelled_event = {
+                            "type": "cancelled",
+                            "content": "检测到客户端断开，停止处理",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        print(f"⚠️ 客户端断开，跳过工具调用")
+                        yield cancelled_event
+                        
+                        completed_event = {
+                            "type": "completed",
+                            "content": "客户端断开，流程结束",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        print(f"Yielding completed event (cancelled before tool): {completed_event}")
+                        yield completed_event
+                        return
+                    
                     print(f"Found tool call in response")
                     tool_call_raw = content.split('<tool_call>')[1].split('</tool_call>')[0]
                     
@@ -320,36 +370,94 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                 print(f"Yielding answer_generation event: {answer_generation_event}")
                                 yield answer_generation_event
                                 
-                                # 解析检索结果并生成带引用的答案
-                                retrieval_results = self.answer_system.parse_retrieval_results(result)
-                                sources_content = self.answer_system.create_sources_content_for_citation(retrieval_results)
-                                answer_data = self.answer_system.generate_answer_with_citations(self.user_prompt, retrieval_results)
-                                
-                                print(f"[DEBUG] Generated answer_data: {answer_data}")
-                                
-                                # 使用纯文本格式化（不包含HTML）
-                                final_answer = self.answer_system.format_final_answer_plain(answer_data)
-                                
-                                print(f"[DEBUG] Final formatted answer: {final_answer}")
-                                
-                                final_answer_event = {
-                                    "type": "final_answer",
-                                    "content": final_answer,
-                                    "answer_data": answer_data,
-                                    "timestamp": datetime.now().isoformat()
-                                }
-                                print(f"Yielding final_answer event (from retrieval): {final_answer_event}")
-                                yield final_answer_event
-                                
-                                completed_event = {
-                                    "type": "completed",
-                                    "content": "基于检索内容生成答案完成",
-                                    "timestamp": datetime.now().isoformat()
-                                }
-                                print(f"Yielding completed event (from retrieval): {completed_event}")
-                                yield completed_event
-                                print(f"=== StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===")
-                                return
+                                try:
+                                    # 解析检索结果
+                                    retrieval_results = self.answer_system.parse_retrieval_results(result)
+                                    
+                                    # 使用流式生成答案
+                                    print(f"[DEBUG] Starting streaming answer generation...")
+                                    
+                                    accumulated_answer = ""
+                                    answer_data = None
+                                    first_chunk = True
+                                    
+                                    for stream_event in self.answer_system.generate_answer_with_citations_stream(self.user_prompt, retrieval_results):
+                                        event_type = stream_event.get("type")
+                                        
+                                        if event_type == "answer_chunk":
+                                            # 逐块发送最终答案内容（使用final_answer类型）
+                                            chunk_content = stream_event.get("content", "")
+                                            accumulated_answer += chunk_content
+                                            
+                                            # 使用final_answer类型，前端会用最终答案样式渲染
+                                            chunk_event = {
+                                                "type": "final_answer_chunk",
+                                                "content": accumulated_answer,  # 发送累积内容
+                                                "is_streaming": True,  # 标记为流式中
+                                                "timestamp": datetime.now().isoformat()
+                                            }
+                                            yield chunk_event
+                                            
+                                        elif event_type == "answer_complete":
+                                            # 答案生成完成，获取完整的 answer_data（包含 citations）
+                                            answer_data = stream_event.get("answer_data", {})
+                                            print(f"[DEBUG] Answer streaming completed, citations count: {len(answer_data.get('citations', []))}")
+                                            
+                                            # 发送带citations的最终答案事件
+                                            final_answer = self.answer_system.format_final_answer_plain(answer_data)
+                                            
+                                            final_answer_event = {
+                                                "type": "final_answer",
+                                                "content": final_answer,
+                                                "answer_data": answer_data,
+                                                "is_streaming": False,  # 标记流式结束
+                                                "timestamp": datetime.now().isoformat()
+                                            }
+                                            print(f"Yielding final_answer event with citations (from retrieval stream)")
+                                            yield final_answer_event
+                                            
+                                        elif event_type == "answer_error":
+                                            # 答案生成出错
+                                            error_content = stream_event.get("content", "生成答案时出错")
+                                            error_event = {
+                                                "type": "error",
+                                                "content": error_content,
+                                                "timestamp": datetime.now().isoformat()
+                                            }
+                                            print(f"Answer generation error: {error_content}")
+                                            yield error_event
+                                    
+                                    # 发送完成事件
+                                    completed_event = {
+                                        "type": "completed",
+                                        "content": "基于检索内容生成答案完成",
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    print(f"Yielding completed event (from retrieval): {completed_event}")
+                                    yield completed_event
+                                    print(f"=== StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===")
+                                    return
+                                    
+                                except Exception as e:
+                                    error_event = {
+                                        "type": "error",
+                                        "content": f"生成最终答案时出错: {str(e)}",
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    print(f"Error generating final answer from retrieval: {str(e)}")
+                                    import traceback
+                                    traceback.print_exc()
+                                    print(f"Yielding error event: {error_event}")
+                                    yield error_event
+                                    
+                                    completed_event = {
+                                        "type": "completed",
+                                        "content": "生成答案失败，流程结束",
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    print(f"Yielding completed event (error): {completed_event}")
+                                    yield completed_event
+                                    return
                             else:
                                 # 检索内容不足，继续推理流程
                                 continue_reasoning_event = {
@@ -403,6 +511,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 print(f"Exception in stream_run: {str(e)}")
                 print(f"Yielding error event: {error_event}")
                 yield error_event
+                
+                completed_event = {
+                    "type": "completed",
+                    "content": "推理错误，流程结束",
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"Yielding completed event (error): {completed_event}")
+                yield completed_event
                 print(f"=== StreamingReactAgent.stream_run ERROR ===")
                 return
             
@@ -452,6 +568,15 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     print(f"Error generating final answer: {str(e)}")
                     print(f"Yielding error event: {error_event}")
                     yield error_event
+                
+                # 发送 completed 事件（无论成功与否）
+                completed_event = {
+                    "type": "completed",
+                    "content": "Token限制，流程结束",
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"Yielding completed event (token limit): {completed_event}")
+                yield completed_event
                 print(f"=== StreamingReactAgent.stream_run TOKEN_LIMIT_END ===")
                 return
                 
@@ -472,6 +597,15 @@ class StreamingReactAgent(MultiTurnReactAgent):
         }
         print(f"Yielding no_answer event: {no_answer_event}")
         yield no_answer_event
+        
+        # 发送 completed 事件
+        completed_event = {
+            "type": "completed",
+            "content": "推理完成（未找到答案）",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(f"Yielding completed event (no answer): {completed_event}")
+        yield completed_event
         print(f"=== StreamingReactAgent.stream_run NO_ANSWER_END ===")
 
 

@@ -1,6 +1,6 @@
 // 应用配置
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:5006',
+    API_BASE_URL: 'http://10.27.127.33:5006',
     MAX_MESSAGE_LENGTH: 4000,
     TYPING_SPEED: 30, // 毫秒
     AUTO_SCROLL_DELAY: 50 // 减少延迟，使滚动更及时

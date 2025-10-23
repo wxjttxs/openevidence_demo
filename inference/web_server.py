@@ -38,7 +38,7 @@ def start_web_server():
     """启动Web服务器"""
     print(f"🌐 启动前端Web服务器...")
     print(f"📁 前端目录: {FRONTEND_DIR}")
-    print(f"🔗 访问地址: http://localhost:{WEB_PORT}")
+    print(f"🔗 访问地址: http://10.27.127.33:{WEB_PORT}")
     print()
     
     # 检查前端目录是否存在
@@ -53,15 +53,15 @@ def start_web_server():
         return
     
     try:
-        with socketserver.TCPServer(("", WEB_PORT), CustomHTTPRequestHandler) as httpd:
+        with socketserver.TCPServer(("0.0.0.0", WEB_PORT), CustomHTTPRequestHandler) as httpd:
             print(f"✅ Web服务器启动成功，端口: {WEB_PORT}")
-            print(f"🌐 请在浏览器中访问: http://localhost:{WEB_PORT}")
+            print(f"🌐 请在浏览器中访问: http://0.0.0.0:{WEB_PORT}")
             print("按 Ctrl+C 停止服务器")
             print()
             
             # 尝试自动打开浏览器
             try:
-                webbrowser.open(f'http://localhost:{WEB_PORT}')
+                webbrowser.open(f'http://10.27.127.33:{WEB_PORT}')
                 print("🚀 已自动打开浏览器")
             except Exception as e:
                 print(f"⚠️  无法自动打开浏览器: {e}")
