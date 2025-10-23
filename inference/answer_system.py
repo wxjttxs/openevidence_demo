@@ -117,15 +117,28 @@ Example:
             content = response.choices[0].message.content
             print(f"[DEBUG] Judgment response: {content}")
             
-            # 尝试解析JSON
+            # 尝试解析JSON（支持markdown包裹的JSON）
             try:
+                # 首先尝试直接解析
                 result = json.loads(content)
                 print(f"[DEBUG] Parsed judgment result: {result}")
                 return result
             except json.JSONDecodeError:
-                # 如果不是有效JSON，尝试提取
-                print(f"[DEBUG] Failed to parse JSON, extracting from text")
-                return self._extract_judgment_from_text(content)
+                # 尝试清理markdown标记后再解析
+                cleaned_content = content.strip()
+                if cleaned_content.startswith("```json"):
+                    cleaned_content = cleaned_content.replace("```json", "").replace("```", "").strip()
+                elif cleaned_content.startswith("```"):
+                    cleaned_content = cleaned_content.replace("```", "").strip()
+                
+                try:
+                    result = json.loads(cleaned_content)
+                    print(f"[DEBUG] Parsed judgment result after cleaning: {result}")
+                    return result
+                except json.JSONDecodeError:
+                    # 如果仍然无法解析，尝试从文本中提取
+                    print(f"[DEBUG] Failed to parse JSON even after cleaning, extracting from text")
+                    return self._extract_judgment_from_text(content)
                 
         except Exception as e:
             print(f"[DEBUG] Error in judgment: {e}")
@@ -308,17 +321,57 @@ Example:
             }
 
     def _extract_judgment_from_text(self, text: str) -> Dict:
-        """从文本中提取判断结果"""
-        # 简单的文本解析逻辑
-        can_answer = "true" in text.lower() or "可以" in text or "能够" in text
-        confidence = 0.5  # 默认置信度
+        """从文本中提取判断结果（改进版：能够提取JSON中的实际值）"""
+        print(f"[DEBUG] Extracting judgment from text: {text[:300]}...")
         
-        return {
+        # 尝试提取JSON对象（即使格式不完美）
+        import re
+        
+        # 默认值
+        can_answer = False
+        confidence = 0.5
+        reason = "无法解析判断结果"
+        missing_info = "无法确定"
+        
+        # 尝试提取 can_answer
+        can_answer_match = re.search(r'"can_answer"\s*:\s*(true|false)', text, re.IGNORECASE)
+        if can_answer_match:
+            can_answer = can_answer_match.group(1).lower() == 'true'
+        else:
+            # 备用：从文本中推断
+            can_answer = "true" in text.lower() or "可以" in text or "能够" in text
+        
+        # 尝试提取 confidence
+        confidence_match = re.search(r'"confidence"\s*:\s*(0\.\d+|1\.0|0|1)', text)
+        if confidence_match:
+            try:
+                confidence = float(confidence_match.group(1))
+            except ValueError:
+                pass
+        
+        # 尝试提取 reason
+        reason_match = re.search(r'"reason"\s*:\s*"([^"]+)"', text, re.DOTALL)
+        if reason_match:
+            reason = reason_match.group(1).strip()
+        else:
+            # 如果没有找到reason字段，使用清理后的文本片段
+            cleaned_text = re.sub(r'```json|```|"can_answer"|"confidence"|"reason"|"missing_info"', '', text)
+            cleaned_text = re.sub(r'[{}:,]', ' ', cleaned_text).strip()
+            reason = cleaned_text[:200] + "..." if len(cleaned_text) > 200 else cleaned_text
+        
+        # 尝试提取 missing_info
+        missing_match = re.search(r'"missing_info"\s*:\s*"([^"]+)"', text, re.DOTALL)
+        if missing_match:
+            missing_info = missing_match.group(1).strip()
+        
+        result = {
             "can_answer": can_answer,
             "confidence": confidence,
-            "reason": text[:200] + "..." if len(text) > 200 else text,
-            "missing_info": "无法确定"
+            "reason": reason,
+            "missing_info": missing_info
         }
+        print(f"[DEBUG] Extracted judgment result: {result}")
+        return result
 
     def _extract_answer_from_text(self, text: str) -> Dict:
         """从文本中提取答案和引用"""
