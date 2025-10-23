@@ -193,6 +193,10 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
         answerContent = answerContent.substring(0, refIndex)
       }
       
+      // 修复数字范围中的波浪号（避免被 Markdown 解析为删除线）
+      // 将 "14~17" 这样的格式转换为 "14-17"，避免渲染问题
+      answerContent = answerContent.replace(/(\d+)\s*~\s*(\d+)/g, '$1-$2')
+      
       return (
         <div className="space-y-6">
           {/* 答案主体 */}

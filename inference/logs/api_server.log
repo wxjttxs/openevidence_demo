@@ -181,3 +181,17 @@ Yielding completed event (from retrieval): {'type': 'completed', 'content': '基
 ✅ [Session e29ac3c4] 会话正常完成
 🔓 [Session e29ac3c4] 槽位已释放
 INFO:     10.31.95.28:35641 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:47060 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:31213 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:54911 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:1272 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:28447 - "GET /citation/1 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:45063 - "GET /citation/2 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:1213 - "GET /citation/1 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:2486 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:26228 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:46627 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:52908 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:13955 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:3954 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:27103 - "GET /health HTTP/1.1" 200 OK
