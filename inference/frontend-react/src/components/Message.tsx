@@ -2,10 +2,13 @@ import { motion } from 'framer-motion'
 import { User, Bot, Lightbulb, Wrench, CheckCircle, XCircle, Target, AlertCircle, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
+import rehypeKatex from 'rehype-katex'
 import { Message as MessageType } from '../types'
 import CollapsibleSection from './CollapsibleSection'
 import 'highlight.js/styles/tokyo-night-dark.css'
+import 'katex/dist/katex.min.css'
 
 interface Citation {
   id: number | string
@@ -202,8 +205,8 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
           {/* 答案主体 */}
           <div className="markdown prose prose-invert max-w-none">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex, rehypeHighlight]}
               components={{
                 a: ({ node, ...props }) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300" />
@@ -287,7 +290,8 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
       return (
         <div className="text-dark-200 whitespace-pre-wrap">
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex, rehypeHighlight]}
             components={{
               code: ({ inline, children, ...props }: any) => (
                 inline ? (

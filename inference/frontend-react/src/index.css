@@ -88,6 +88,48 @@
   .markdown td {
     @apply px-4 py-2 border border-dark-700;
   }
+
+  /* KaTeX 数学公式暗色主题样式 */
+  .katex {
+    @apply text-dark-100;
+    font-size: 1.05em;
+  }
+
+  .katex-display {
+    @apply my-4;
+  }
+
+  /* 行内公式样式 */
+  .katex-inline {
+    @apply mx-0.5;
+  }
+
+  /* 确保公式在暗色背景下可读 */
+  .katex .mord,
+  .katex .mbin,
+  .katex .mrel,
+  .katex .mop,
+  .katex .mopen,
+  .katex .mclose,
+  .katex .mpunct,
+  .katex .minner {
+    color: inherit;
+  }
+
+  /* 修复数学符号颜色 */
+  .prose-invert .katex {
+    @apply text-dark-100;
+  }
+
+  /* 修复分数线等元素的颜色 */
+  .katex .frac-line,
+  .katex .stretchy {
+    background-color: currentColor;
+  }
+
+  .katex svg {
+    fill: currentColor;
+  }
 }
 
 @layer utilities {

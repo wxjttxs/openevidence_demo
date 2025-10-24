@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeKatex from 'rehype-katex'
 import { getCitationDetail } from '../services/api'
+import 'highlight.js/styles/tokyo-night-dark.css'
+import 'katex/dist/katex.min.css'
 
 interface Citation {
   id: number | string
@@ -33,7 +40,12 @@ export default function CitationPanel({ citation, onClose }: CitationPanelProps)
       setError('')
       try {
         console.log('📡 获取引用详情:', { citationId: citation.id })
-        const content = await getCitationDetail(citation.id)
+        let content = await getCitationDetail(citation.id)
+        
+        // 修复数字范围中的波浪号（避免被 Markdown 解析为删除线）
+        // 将 "14~17" 这样的格式转换为 "14-17"
+        content = content.replace(/(\d+)\s*~\s*(\d+)/g, '$1-$2')
+        
         setFullContent(content)
       } catch (err) {
         console.error('获取引用详情失败:', err)
@@ -110,9 +122,46 @@ export default function CitationPanel({ citation, onClose }: CitationPanelProps)
                       <p>{error}</p>
                     </div>
                   ) : (
-                    <p className="text-dark-200 leading-relaxed whitespace-pre-wrap font-mono text-sm">
-                      {fullContent || '暂无内容'}
-                    </p>
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                        components={{
+                          // 链接在新标签页打开
+                          a: ({ node, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300" />
+                          ),
+                          // 代码块样式
+                          code: ({ node, className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '')
+                            const inline = !match
+                            return inline ? (
+                              <code className="bg-dark-800 text-primary-400 px-1.5 py-0.5 rounded text-xs" {...props}>
+                                {children}
+                              </code>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            )
+                          },
+                          // 表格样式
+                          table: ({ node, ...props }) => (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-dark-700" {...props} />
+                            </div>
+                          ),
+                          th: ({ node, ...props }) => (
+                            <th className="px-3 py-2 bg-dark-800 text-left text-xs font-semibold text-dark-300" {...props} />
+                          ),
+                          td: ({ node, ...props }) => (
+                            <td className="px-3 py-2 text-sm text-dark-200 border-t border-dark-700" {...props} />
+                          ),
+                        }}
+                      >
+                        {fullContent || '暂无内容'}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </div>
               </div>
