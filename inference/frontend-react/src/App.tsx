@@ -190,34 +190,44 @@ function App() {
       <div className="fixed inset-0 bg-gradient-to-br from-primary-900/20 via-purple-900/20 to-pink-900/20 pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-dark-900/50 to-dark-900 pointer-events-none" />
       
-      {/* 主内容 */}
-      <div className="relative z-10 flex flex-col h-full">
+      {/* Header - 全宽 */}
+      <div className="relative z-10">
         <Header status={status} statusText={statusText} />
-        
-        <main className="flex-1 overflow-hidden">
-          <ChatContainer 
-            messages={messages} 
-            isProcessing={isProcessing}
-            onCitationClick={handleCitationClick}
-          />
-        </main>
-
-        <div className="border-t border-dark-700/50 bg-dark-800/80 backdrop-blur-sm">
-          <MessageInput 
-            onSend={handleSendMessage} 
-            disabled={isProcessing}
-            isProcessing={isProcessing}
-          />
-        </div>
       </div>
 
-      {/* 移除全屏加载层，改为在消息流中显示进度 */}
+      {/* 主内容区域 - 使用 flex 布局实现并列显示 */}
+      <div className="relative z-10 flex flex-1 overflow-hidden">
+        {/* 左侧主内容 - 根据是否有 citation 动态调整宽度 */}
+        <motion.div 
+          className="flex flex-col h-full bg-dark-900/50"
+          animate={{ 
+            width: selectedCitation ? '60%' : '100%' 
+          }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        >
+          <main className="flex-1 overflow-hidden">
+            <ChatContainer 
+              messages={messages} 
+              isProcessing={isProcessing}
+              onCitationClick={handleCitationClick}
+            />
+          </main>
 
-      {/* 引用详情侧边栏 */}
-      <CitationPanel 
-        citation={selectedCitation}
-        onClose={handleCloseCitation}
-      />
+          <div className="border-t border-dark-700/50 bg-dark-800/80 backdrop-blur-sm">
+            <MessageInput 
+              onSend={handleSendMessage} 
+              disabled={isProcessing}
+              isProcessing={isProcessing}
+            />
+          </div>
+        </motion.div>
+
+        {/* 右侧引用详情面板 - 并列显示，不遮挡主内容 */}
+        <CitationPanel 
+          citation={selectedCitation}
+          onClose={handleCloseCitation}
+        />
+      </div>
     </div>
   )
 }

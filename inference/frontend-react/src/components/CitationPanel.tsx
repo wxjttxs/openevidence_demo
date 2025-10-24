@@ -48,24 +48,13 @@ export default function CitationPanel({ citation, onClose }: CitationPanelProps)
   return (
     <AnimatePresence>
       {citation && (
-        <>
-          {/* 遮罩层 */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-            onClick={onClose}
-          />
-
-          {/* 右侧边栏 */}
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-full sm:w-[500px] bg-dark-800 shadow-2xl z-50 flex flex-col border-l border-dark-700"
-          >
+        <motion.div
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: '40%', opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="h-full bg-dark-800 shadow-2xl flex flex-col border-l border-dark-700 overflow-hidden"
+        >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-dark-700">
               <div className="flex items-center space-x-3">
@@ -139,7 +128,6 @@ export default function CitationPanel({ citation, onClose }: CitationPanelProps)
               </button>
             </div>
           </motion.div>
-        </>
       )}
     </AnimatePresence>
   )
