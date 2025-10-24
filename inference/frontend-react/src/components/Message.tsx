@@ -76,7 +76,12 @@ const messageLabels: Record<string, string> = {
 export default function MessageComponent({ message, onCitationClick }: MessageProps) {
   const Icon = messageIcons[message.type] || Bot
   const colorClass = messageColors[message.type] || messageColors.assistant
-  const label = messageLabels[message.eventType || ''] || messageLabels[message.type] || '消息'
+  
+  // 动态计算 label：thinking 类型根据 isStreaming 状态显示不同文本
+  let label = messageLabels[message.eventType || ''] || messageLabels[message.type] || '消息'
+  if (message.type === 'thinking') {
+    label = message.isStreaming ? '思考中' : '思考结束'
+  }
 
   const formatTime = (timestamp: string) => {
     try {

@@ -210,7 +210,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
         
         init_event = {
             "type": "init",
-            "content": f"开始处理问题: {question}",
+            "content": f"开始处理问题。。。",
             "timestamp": datetime.now().isoformat()
         }
         print(f"Yielding init event: {init_event}")
@@ -305,16 +305,20 @@ class StreamingReactAgent(MultiTurnReactAgent):
                         think_buffer = accumulated_content[start_pos:]
                         chunk_to_send = think_buffer
                     elif in_think_tag:
-                        # 检查是否遇到结束标签
-                        if '</think>' in chunk:
+                        # 检查是否遇到结束标签或tool_call标签
+                        if '</think>' in chunk or '<tool_call>' in chunk:
+                            # 找到结束位置（优先</think>，其次<tool_call>）
+                            end_pos_think = chunk.find('</think>') if '</think>' in chunk else len(chunk)
+                            end_pos_tool = chunk.find('<tool_call>') if '<tool_call>' in chunk else len(chunk)
+                            end_pos = min(end_pos_think, end_pos_tool)
+                            
                             # 提取结束标签前的内容
-                            end_pos = chunk.find('</think>')
                             chunk_to_send = chunk[:end_pos]
                             think_buffer += chunk_to_send
                             in_think_tag = False
                             
                             # 发送最后一块thinking内容
-                            if chunk_to_send:
+                            if chunk_to_send.strip():
                                 thinking_chunk_event = {
                                     "type": "thinking_chunk",
                                     "content": chunk_to_send,
@@ -346,9 +350,20 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 
                 # 如果有思考内容，发送最终的 thinking 事件（标记思考完成，触发前端折叠）
                 if think_buffer.strip():
+                    # 清理思考内容：移除可能残留的标签
+                    clean_thinking = think_buffer.strip()
+                    
+                    # 移除 </think> 标签及其之后的所有内容
+                    if '</think>' in clean_thinking:
+                        clean_thinking = clean_thinking.split('</think>')[0].strip()
+                    
+                    # 移除 <tool_call> 标签及其之后的所有内容
+                    if '<tool_call>' in clean_thinking:
+                        clean_thinking = clean_thinking.split('<tool_call>')[0].strip()
+                    
                     thinking_complete_event = {
                         "type": "thinking",
-                        "content": think_buffer.strip(),
+                        "content": clean_thinking,
                         "is_streaming": False,  # 明确标记流式结束，触发折叠
                         "timestamp": datetime.now().isoformat()
                     }

@@ -21,3 +21,8 @@
   ➜  Network: http://100.91.121.65:8088/
   ➜  Network: http://172.31.0.1:8088/
   ➜  Network: http://192.168.192.1:8088/
+15:25:21 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:25:21 [vite] hmr update /src/index.css
+15:25:21 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
+15:30:06 [vite] hmr update /src/components/Message.tsx, /src/index.css
+15:32:53 [vite] hmr update /src/components/Message.tsx, /src/index.css
