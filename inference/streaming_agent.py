@@ -210,7 +210,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
         
         init_event = {
             "type": "init",
-            "content": f"开始处理问题。。。",
+            "content": f"开始处理问题...",
             "timestamp": datetime.now().isoformat()
         }
         print(f"Yielding init event: {init_event}")
@@ -522,14 +522,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                         event_type = stream_event.get("type")
                                         
                                         if event_type == "answer_chunk":
-                                            # 逐块发送最终答案内容（使用final_answer类型）
+                                            # 逐块发送最终答案内容（仅答案主体，不含参考文献）
                                             chunk_content = stream_event.get("content", "")
                                             accumulated_answer += chunk_content
                                             
-                                            # 使用final_answer类型，前端会用最终答案样式渲染
+                                            # 使用final_answer_chunk类型，前端会用最终答案样式渲染
                                             chunk_event = {
                                                 "type": "final_answer_chunk",
-                                                "content": accumulated_answer,  # 发送累积内容
+                                                "content": accumulated_answer,  # 发送累积的答案内容（不含参考文献）
                                                 "is_streaming": True,  # 标记为流式中
                                                 "timestamp": datetime.now().isoformat()
                                             }
@@ -540,13 +540,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             answer_data = stream_event.get("answer_data", {})
                                             print(f"[DEBUG] Answer streaming completed, citations count: {len(answer_data.get('citations', []))}")
                                             
-                                            # 发送带citations的最终答案事件
-                                            final_answer = self.answer_system.format_final_answer_plain(answer_data)
+                                            # 直接使用 answer 字段内容，不进行格式化
+                                            # accumulated_answer 已包含流式传输的答案主体
+                                            final_answer_content = accumulated_answer.strip() if accumulated_answer else answer_data.get("answer", "")
                                             
                                             final_answer_event = {
                                                 "type": "final_answer",
-                                                "content": final_answer,
-                                                "answer_data": answer_data,
+                                                "content": final_answer_content,  # 只发送答案主体，不含 "参考文献:" 格式化
+                                                "answer_data": answer_data,  # 前端从这里提取 citations
                                                 "is_streaming": False,  # 标记流式结束
                                                 "timestamp": datetime.now().isoformat()
                                             }

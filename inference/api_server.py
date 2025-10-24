@@ -243,8 +243,10 @@ async def chat_stream(request: ChatRequest):
                     if "answer_data" in event:
                         # 优化：为 citations 添加 preview 字段（前50字）
                         answer_data = event["answer_data"]
+                        print(f"[DEBUG] Processing answer_data: {type(answer_data)}, has citations: {'citations' in answer_data if isinstance(answer_data, dict) else 'N/A'}")
                         if isinstance(answer_data, dict) and "citations" in answer_data:
                             full_citations = answer_data.get("citations", [])
+                            print(f"[DEBUG] Full citations count: {len(full_citations)}")
                             
                             # 保存完整的 citations 到全局存储（供后续接口查询）
                             with session_lock:
@@ -258,6 +260,7 @@ async def chat_stream(request: ChatRequest):
                                             "title": citation.get("title", ""),
                                             "full_content": full_content
                                         }
+                                        print(f"[DEBUG] Saved citation {citation_id} to global_citations")
                             
                             # 处理发送给前端的 citations（只包含 preview）
                             processed_citations = []
@@ -273,7 +276,9 @@ async def chat_stream(request: ChatRequest):
                                 processed_citations.append(processed_citation)
                             answer_data = answer_data.copy()
                             answer_data["citations"] = processed_citations
+                            print(f"[DEBUG] Processed citations count: {len(processed_citations)}")
                         response_data["answer_data"] = answer_data
+                        print(f"[DEBUG] Added answer_data to response_data, citations: {len(response_data['answer_data'].get('citations', [])) if isinstance(response_data.get('answer_data'), dict) else 'N/A'}")
                     
                     # 检查是否是 completed 事件
                     if event.get("type") == "completed":
@@ -281,13 +286,26 @@ async def chat_stream(request: ChatRequest):
                     
                     # 发送数据（添加异常处理）
                     try:
+                        # 在序列化前记录事件类型
+                        event_type = response_data.get('type')
+                        if event_type == 'final_answer':
+                            print(f"🔍 [Session {session_id[:8]}] 准备序列化 final_answer 事件...")
+                            print(f"   - answer_data存在: {'answer_data' in response_data}")
+                            if 'answer_data' in response_data and isinstance(response_data['answer_data'], dict):
+                                print(f"   - citations数量: {len(response_data['answer_data'].get('citations', []))}")
+                        
                         json_str = json.dumps(response_data, ensure_ascii=False)
                         
                         # 记录大数据包的大小
                         if len(json_str) > 10000:  # 超过 10KB
-                            print(f"⚠️ [Session {session_id[:8]}] 发送大数据包: {len(json_str)} 字节, 类型: {response_data.get('type')}")
+                            print(f"⚠️ [Session {session_id[:8]}] 发送大数据包: {len(json_str)} 字节, 类型: {event_type}")
+                        elif event_type == 'final_answer':
+                            print(f"✅ [Session {session_id[:8]}] final_answer序列化成功: {len(json_str)} 字节")
                         
                         yield f"data: {json_str}\n\n"
+                        
+                        if event_type == 'final_answer':
+                            print(f"✅ [Session {session_id[:8]}] final_answer数据已yield")
                     except Exception as json_error:
                         # JSON序列化失败：只记录日志，不发送error事件给前端（避免重复错误卡片）
                         print(f"❌ [Session {session_id[:8]}] JSON序列化失败: {str(json_error)}")

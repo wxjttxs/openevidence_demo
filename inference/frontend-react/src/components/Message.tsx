@@ -242,20 +242,28 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
             )}
           </div>
 
-          {/* 引用列表 - 仅在非流式且有citations时显示 */}
-          {!message.isStreaming && citations.length > 0 && (
-            <div className="border-t border-dark-700 pt-6">
+          {/* 引用列表 - 有citations时立即显示（不等待流式完成） */}
+          {citations.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="border-t border-dark-700 pt-6"
+            >
               <h3 className="text-lg font-semibold text-dark-50 mb-4 flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-primary-400" />
                 参考文献
               </h3>
               <div className="space-y-4">
-                {citations.map((citation: any) => {
+                {citations.map((citation: any, index: number) => {
                   // 使用后端提供的 preview 字段（前30字）
                   const preview = citation.preview || ''
                   return (
                     <motion.div
                       key={citation.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
                       whileHover={{ scale: 1.02 }}
                       className="group bg-dark-800/50 rounded-lg p-4 border border-dark-700 hover:border-primary-500/50 transition-all cursor-pointer"
                       onClick={() => onCitationClick({
@@ -284,7 +292,7 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
                   )
                 })}
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       )

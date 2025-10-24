@@ -175,58 +175,91 @@ Example:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.5,
-                max_tokens=4096,
+                max_tokens=8192,  # 增加 max_tokens 确保完整生成
                 stream=True  # 启用流式
             )
             
             accumulated_content = ""
             in_answer_field = False
             answer_text = ""
-            brace_count = 0
+            last_yield_length = 0  # 记录上次发送的位置
+            found_answer_start = False
+            answer_field_complete = False  # 标记 answer 字段是否已完成提取
             
             # 逐块接收并智能提取answer字段内容
             for chunk in response:
+                if answer_field_complete:
+                    # answer 字段已提取完成，继续读取剩余数据但不处理
+                    if chunk.choices[0].delta.content:
+                        accumulated_content += chunk.choices[0].delta.content
+                    continue
+                
                 if chunk.choices[0].delta.content:
                     content_piece = chunk.choices[0].delta.content
                     accumulated_content += content_piece
                     
-                    # 检测是否进入answer字段
-                    if not in_answer_field and '"answer"' in accumulated_content:
+                    # 检测是否进入answer字段（只检测一次）
+                    if not found_answer_start and '"answer"' in accumulated_content:
+                        found_answer_start = True
                         in_answer_field = True
-                        # 找到answer字段开始位置
+                        # 找到answer字段开始位置（"answer": "后面的内容）
                         answer_start = accumulated_content.find('"answer"')
-                        # 跳过 "answer": "
                         remaining = accumulated_content[answer_start:]
                         colon_pos = remaining.find(':')
                         if colon_pos != -1:
                             after_colon = remaining[colon_pos + 1:].lstrip()
                             if after_colon.startswith('"'):
-                                # 找到开始的引号后的内容
+                                # 找到开始引号后的内容
                                 answer_text = after_colon[1:]
                     
-                    # 如果已经在answer字段内，累积内容
-                    if in_answer_field:
-                        # 检测是否遇到了结束引号（排除转义的\"）
-                        for char in content_piece:
-                            if char == '"' and (not answer_text or answer_text[-1] != '\\'):
-                                # 遇到未转义的引号，可能是answer字段结束
-                                in_answer_field = False
-                                break
+                    # 如果已经在answer字段内，处理新增的chunk
+                    elif in_answer_field:
+                        # 逐字符检查，寻找结束引号
+                        for i, char in enumerate(content_piece):
+                            # 检测未转义的引号（不是 \"）
+                            if char == '"':
+                                # 检查前一个字符是否是反斜杠
+                                if len(answer_text) > 0 and answer_text[-1] == '\\':
+                                    # 这是转义的引号，继续累积
+                                    answer_text += char
+                                else:
+                                    # 这是结束引号，停止累积
+                                    in_answer_field = False
+                                    answer_field_complete = True
+                                    print(f"[DEBUG] Found answer field end, total length: {len(answer_text)}")
+                                    break
                             else:
                                 answer_text += char
                         
-                        # 只发送answer字段的纯文本内容
-                        if in_answer_field and content_piece:
-                            # 清理可能的转义字符
-                            clean_piece = content_piece.replace('\\n', '\n').replace('\\"', '"')
+                        # 发送新增内容
+                        if len(answer_text) > last_yield_length:
+                            # 清理转义字符
+                            clean_answer = answer_text.replace('\\n', '\n').replace('\\"', '"')
                             
-                            yield {
-                                "type": "answer_chunk",
-                                "content": clean_piece,
-                            }
+                            # 检查是否包含"参考文献:"，只发送之前的部分
+                            if '\n\n参考文献:' in clean_answer:
+                                clean_answer = clean_answer[:clean_answer.find('\n\n参考文献:')]
+                            elif '\n参考文献:' in clean_answer:
+                                clean_answer = clean_answer[:clean_answer.find('\n参考文献:')]
+                            
+                            # 只发送新增的部分
+                            if len(clean_answer) > last_yield_length:
+                                new_content = clean_answer[last_yield_length:]
+                                last_yield_length = len(clean_answer)
+                                
+                                if new_content:  # 确保有内容才发送
+                                    yield {
+                                        "type": "answer_chunk",
+                                        "content": new_content,
+                                    }
+                        
+                        if answer_field_complete:
+                            print(f"[DEBUG] Answer field extraction completed, continuing to read remaining data...")
             
             print(f"[DEBUG] Stream completed, total length: {len(accumulated_content)}")
             print(f"[DEBUG] Extracted answer length: {len(answer_text)}")
+            print(f"[DEBUG] Accumulated content preview: {accumulated_content[:500]}...")
+            print(f"[DEBUG] Accumulated content end: ...{accumulated_content[-500:]}")
             
             # 流式完成后，解析完整内容以提取 citations
             try:
@@ -248,12 +281,45 @@ Example:
                 
             except json.JSONDecodeError as e:
                 print(f"[DEBUG] JSON parse failed: {e}")
-                # 如果不是有效JSON，尝试提取
-                result = self._extract_answer_from_text(accumulated_content)
-                yield {
-                    "type": "answer_complete",
-                    "answer_data": result
-                }
+                print(f"[DEBUG] Attempting to fix incomplete JSON...")
+                
+                # 尝试修复不完整的 JSON
+                content = accumulated_content
+                if content.startswith("```json"):
+                    content = content.replace("```json", "").replace("```", "").strip()
+                elif content.startswith("```"):
+                    content = content.replace("```", "").strip()
+                
+                # 如果 JSON 不完整，尝试手动补全
+                if not content.strip().endswith('}'):
+                    # 可能缺少结尾的 }
+                    # 尝试找到最后一个完整的 citation 项
+                    import re
+                    # 查找所有 citation 项
+                    citations_pattern = r'"citations"\s*:\s*\[(.*?)(?:\]|$)'
+                    citations_match = re.search(citations_pattern, content, re.DOTALL)
+                    
+                    if citations_match:
+                        citations_content = citations_match.group(1)
+                        # 补全可能不完整的 JSON
+                        content = content.rstrip() + ']}'
+                
+                # 再次尝试解析
+                try:
+                    result = json.loads(content)
+                    print(f"[DEBUG] Successfully parsed after fixing, citations count: {len(result.get('citations', []))}")
+                    yield {
+                        "type": "answer_complete",
+                        "answer_data": result
+                    }
+                except json.JSONDecodeError as e2:
+                    print(f"[DEBUG] Still failed after fixing: {e2}")
+                    # 如果仍然失败，使用提取方法
+                    result = self._extract_answer_from_text(accumulated_content)
+                    yield {
+                        "type": "answer_complete",
+                        "answer_data": result
+                    }
                 
         except Exception as e:
             print(f"[DEBUG] Error in streaming answer: {e}")

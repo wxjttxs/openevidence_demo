@@ -26,3 +26,75 @@
 15:25:21 [vite] hmr update /src/components/CitationPanel.tsx, /src/index.css
 15:30:06 [vite] hmr update /src/components/Message.tsx, /src/index.css
 15:32:53 [vite] hmr update /src/components/Message.tsx, /src/index.css
+17:25:15 [vite] hmr update /src/components/Message.tsx, /src/index.css
+17:25:59 [vite] hmr update /src/components/Message.tsx, /src/index.css
+17:26:00 [vite] Internal server error: /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/src/components/Message.tsx: Expected corresponding JSX closing tag for <motion.div>. (295:12)
+
+  293 |                 })}
+  294 |               </div>
+> 295 |             </div>
+      |             ^
+  296 |           )}
+  297 |         </div>
+  298 |       )
+  Plugin: vite:react-babel
+  File: /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/src/components/Message.tsx:295:12
+  293|                  })}
+  294|                </div>
+  295|              </div>
+     |              ^
+  296|            )}
+  297|          </div>
+      at constructor (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:367:19)
+      at TypeScriptParserMixin.raise (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:6630:19)
+      at TypeScriptParserMixin.jsxParseElementAt (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4760:16)
+      at TypeScriptParserMixin.jsxParseElement (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4782:17)
+      at TypeScriptParserMixin.parseExprAtom (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4792:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11085:23)
+      at TypeScriptParserMixin.parseUpdate (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11070:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11050:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9857:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10903:61)
+      at TypeScriptParserMixin.parseExprOps (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10908:23)
+      at TypeScriptParserMixin.parseMaybeConditional (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10885:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10835:21)
+      at /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9795:39
+      at TypeScriptParserMixin.tryParse (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:6938:20)
+      at TypeScriptParserMixin.parseMaybeAssign (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9795:18)
+      at /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10804:39
+      at TypeScriptParserMixin.allowInAnd (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:12436:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10804:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:12503:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11683:28)
+      at TypeScriptParserMixin.parseExprAtom (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11335:23)
+      at TypeScriptParserMixin.parseExprAtom (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4797:20)
+      at TypeScriptParserMixin.parseExprSubscripts (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11085:23)
+      at TypeScriptParserMixin.parseUpdate (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11070:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11050:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9857:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10903:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10990:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10985:21)
+      at TypeScriptParserMixin.parseExprOp (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10951:27)
+      at TypeScriptParserMixin.parseExprOp (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9394:18)
+      at TypeScriptParserMixin.parseExprOp (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10957:21)
+      at TypeScriptParserMixin.parseExprOp (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9394:18)
+      at TypeScriptParserMixin.parseExprOps (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10912:17)
+      at TypeScriptParserMixin.parseMaybeConditional (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10885:23)
+      at TypeScriptParserMixin.parseMaybeAssign (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10835:21)
+      at TypeScriptParserMixin.parseMaybeAssign (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9806:20)
+      at TypeScriptParserMixin.parseExpressionBase (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10788:23)
+      at /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10784:39
+      at TypeScriptParserMixin.allowInAnd (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:12436:12)
+      at TypeScriptParserMixin.parseExpression (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:10784:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4665:31)
+      at TypeScriptParserMixin.jsxParseElementAt (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4744:36)
+      at TypeScriptParserMixin.jsxParseElement (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4782:17)
+      at TypeScriptParserMixin.parseExprAtom (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:4792:19)
+      at TypeScriptParserMixin.parseExprSubscripts (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11085:23)
+      at TypeScriptParserMixin.parseUpdate (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11070:21)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:11050:23)
+      at TypeScriptParserMixin.parseMaybeUnary (/mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/frontend-react/node_modules/@babel/parser/lib/index.js:9857:18)
+17:26:14 [vite] hmr update /src/components/Message.tsx, /src/index.css
+17:26:43 [vite] hmr update /src/components/Message.tsx, /src/index.css
+17:30:00 [vite] hmr update /src/components/Message.tsx, /src/index.css
