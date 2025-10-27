@@ -367,6 +367,18 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
         isStreaming: true, // 标记为流式中
       }
 
+    case 'answer_complete':
+      // 答案生成完成（包含citations）- 立即显示参考文献
+      return {
+        ...baseMessage,
+        id: currentMessageId || 'final-answer', // 使用相同的固定ID
+        type: 'final-answer',
+        content: content || answer_data?.answer || '', // 优先使用content，其次answer字段
+        eventType: 'answer_complete', // 使用正确的事件类型
+        isStreaming: false, // 立即显示参考文献
+        metadata: { answer_data },
+      }
+
     case 'final_answer':
       // 最终答案 - 使用相同的ID更新流式消息
       return {
@@ -375,6 +387,7 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
         type: 'final-answer',
         content,
         eventType: 'final-answer',
+        isStreaming: false, // 明确标记流式结束，立即显示参考文献
         metadata: { answer_data },
       }
 

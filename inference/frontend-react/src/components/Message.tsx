@@ -242,7 +242,7 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
             )}
           </div>
 
-          {/* 引用列表 - 有citations时立即显示（不等待流式完成） */}
+          {/* 引用列表 - 有citations时立即显示（不等待任何条件） */}
           {citations.length > 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

@@ -544,15 +544,16 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             # accumulated_answer 已包含流式传输的答案主体
                                             final_answer_content = accumulated_answer.strip() if accumulated_answer else answer_data.get("answer", "")
                                             
-                                            final_answer_event = {
-                                                "type": "final_answer",
+                                            # 直接传递 answer_complete 事件，让前端立即显示参考文献
+                                            answer_complete_event = {
+                                                "type": "answer_complete",
                                                 "content": final_answer_content,  # 只发送答案主体，不含 "参考文献:" 格式化
                                                 "answer_data": answer_data,  # 前端从这里提取 citations
                                                 "is_streaming": False,  # 标记流式结束
                                                 "timestamp": datetime.now().isoformat()
                                             }
-                                            print(f"Yielding final_answer event with citations (from retrieval stream)")
-                                            yield final_answer_event
+                                            print(f"Yielding answer_complete event with citations (from retrieval stream)")
+                                            yield answer_complete_event
                                             
                                         elif event_type == "answer_error":
                                             # 答案生成出错 - 立即返回，不再发送completed事件

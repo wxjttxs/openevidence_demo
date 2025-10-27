@@ -63,10 +63,16 @@ When providing final answers, you MUST use academic citation format:
 - 编号必须连续递增：1, 2, 3, 4, 5...
 - 在citations数组中，id字段也必须对应：1, 2, 3, 4, 5...
 
-Example（正确示例）:
-"糖尿病主要分为1型糖尿病[1]和2型糖尿病[2]，还有妊娠糖尿病等特殊类型[3]。
+**重要：请分两个阶段生成内容**
+第一阶段：先生成完整的答案内容（包含引用标号）
+第二阶段：立即生成参考文献列表
 
-参考文献:
+Example（正确示例）:
+第一阶段 - 答案内容:
+"糖尿病主要分为1型糖尿病[1]和2型糖尿病[2]，还有妊娠糖尿病等特殊类型[3]。根据最新指南，1型糖尿病需要终身胰岛素治疗[1]，而2型糖尿病可以通过生活方式干预和药物治疗来控制[2]。妊娠糖尿病需要特殊的血糖管理策略[3]。"
+
+第二阶段 - 参考文献:
+"参考文献:
 
 [1] 糖尿病诊疗指南.pdf 
 要点：·饮食质量和能量控制是血糖管理的基础...
@@ -77,7 +83,7 @@ Example（正确示例）:
 [3] 妊娠期疾病手册.pdf 
 行为与生活方式干预的原则..."
 
-请以JSON格式回答（注意JSON格式的正确性）：
+请严格按照以下JSON格式回答（注意JSON格式的正确性）：
 {{
     "answer": "完整的答案内容，包含引用标号[1][2][3]等（编号必须从1开始依次递增）",
     "citations": [
@@ -164,8 +170,45 @@ Example（正确示例）:
                 "missing_info": "无法评估"
             }
 
+    def _pre_generate_citations(self, question: str, retrieval_results: List[Dict]) -> List[Dict]:
+        """
+        预生成参考文献列表
+        
+        Args:
+            question: 用户问题
+            retrieval_results: 检索结果列表
+            
+        Returns:
+            List[Dict]: 预生成的参考文献列表
+        """
+        try:
+            # 基于检索结果直接构造参考文献
+            citations = []
+            for i, result in enumerate(retrieval_results[:10], 1):  # 最多10个参考文献
+                citation = {
+                    "id": i,
+                    "title": result.get("title", f"文档 {i}"),
+                    "preview": result.get("content", "")[:30] + "..." if len(result.get("content", "")) > 30 else result.get("content", ""),
+                    "full_content": result.get("content", "")
+                }
+                citations.append(citation)
+            
+            print(f"[DEBUG] 预生成参考文献完成: {len(citations)} items")
+            return citations
+            
+        except Exception as e:
+            print(f"[DEBUG] 预生成参考文献失败: {e}")
+            return []
+
     def generate_answer_with_citations_stream(self, question: str, retrieval_results: List[Dict]):
-        """流式生成带引用的答案 - 只发送纯文本，前端无需解析JSON"""
+        """
+        流式生成带引用的答案 - 预生成参考文献优化版本
+        
+        优化策略：
+        1. 先基于检索结果预生成参考文献
+        2. 然后流式生成答案文本
+        3. 答案生成完成后立即显示预生成的参考文献
+        """
         try:
             # 准备来源内容
             sources_content = self.create_sources_content_for_citation(retrieval_results)
@@ -173,13 +216,29 @@ Example（正确示例）:
             print(f"[DEBUG] Streaming answer generation for question: {question[:100]}...")
             print(f"[DEBUG] Sources content length: {len(sources_content)}")
             
+            # 第一步：预生成参考文献
+            print(f"[DEBUG] 预生成参考文献...")
+            pre_generated_citations = self._pre_generate_citations(question, retrieval_results)
+            
+            # 第二步：流式生成答案文本（不包含参考文献）
+            answer_prompt = f"""你是一个专业的问答专家。请基于提供的检索内容回答用户问题，并在答案中添加引用标号。
+
+用户问题: {question}
+
+检索内容及来源:
+{sources_content}
+
+要求：
+1. 在答案中使用引用标号[1][2][3]等
+2. 编号必须从1开始，严格按照在答案中首次出现的顺序分配
+3. 只生成答案内容，不要生成参考文献列表
+
+请直接回答用户问题，在相关部分添加引用标号："""
+            
             messages = [
                 {
                     "role": "user",
-                    "content": self.citation_prompt.format(
-                        question=question,
-                        sources_content=sources_content
-                    )
+                    "content": answer_prompt
                 }
             ]
             
@@ -193,172 +252,45 @@ Example（正确示例）:
             )
             
             accumulated_content = ""
-            in_answer_field = False
             answer_text = ""
             last_yield_length = 0  # 记录上次发送的位置
-            found_answer_start = False
-            answer_field_complete = False  # 标记 answer 字段是否已完成提取
             citations_sent = False  # 标记是否已发送citations
             
-            # 逐块接收并智能提取answer字段内容
+            # 简化的流式生成逻辑
             for chunk in response:
-                if answer_field_complete:
-                    # answer 字段已提取完成，继续读取剩余数据
-                    if chunk.choices[0].delta.content:
-                        accumulated_content += chunk.choices[0].delta.content
-                        
-                        # 尝试提前解析 citations（一旦检测到完整的 citations 数组）
-                        if not citations_sent and '"citations"' in accumulated_content and ']' in accumulated_content:
-                            try:
-                                # 尝试解析已接收的内容
-                                temp_content = accumulated_content.strip()
-                                # 如果还没有结束花括号，临时添加一个
-                                if not temp_content.endswith('}'):
-                                    temp_content = temp_content.rstrip(',') + '}'
-                                
-                                temp_result = json.loads(temp_content)
-                                if 'citations' in temp_result and len(temp_result.get('citations', [])) > 0:
-                                    # 成功解析到citations，立即发送
-                                    print(f"[DEBUG] Early citations parsed: {len(temp_result['citations'])} items")
-                                    yield {
-                                        "type": "answer_complete",
-                                        "answer_data": temp_result
-                                    }
-                                    citations_sent = True
-                            except json.JSONDecodeError:
-                                # 解析失败，继续等待更多数据
-                                pass
-                    continue
-                
                 if chunk.choices[0].delta.content:
                     content_piece = chunk.choices[0].delta.content
                     accumulated_content += content_piece
+                    answer_text += content_piece
                     
-                    # 检测是否进入answer字段（只检测一次）
-                    if not found_answer_start and '"answer"' in accumulated_content:
-                        found_answer_start = True
-                        in_answer_field = True
-                        # 找到answer字段开始位置（"answer": "后面的内容）
-                        answer_start = accumulated_content.find('"answer"')
-                        remaining = accumulated_content[answer_start:]
-                        colon_pos = remaining.find(':')
-                        if colon_pos != -1:
-                            after_colon = remaining[colon_pos + 1:].lstrip()
-                            if after_colon.startswith('"'):
-                                # 找到开始引号后的内容
-                                answer_text = after_colon[1:]
-                    
-                    # 如果已经在answer字段内，处理新增的chunk
-                    elif in_answer_field:
-                        # 逐字符检查，寻找结束引号
-                        for i, char in enumerate(content_piece):
-                            # 检测未转义的引号（不是 \"）
-                            if char == '"':
-                                # 检查前一个字符是否是反斜杠
-                                if len(answer_text) > 0 and answer_text[-1] == '\\':
-                                    # 这是转义的引号，继续累积
-                                    answer_text += char
-                                else:
-                                    # 这是结束引号，停止累积
-                                    in_answer_field = False
-                                    answer_field_complete = True
-                                    print(f"[DEBUG] Found answer field end, total length: {len(answer_text)}")
-                                    break
-                            else:
-                                answer_text += char
+                    # 发送答案片段
+                    if len(answer_text) > last_yield_length:
+                        new_content = answer_text[last_yield_length:]
+                        last_yield_length = len(answer_text)
                         
-                        # 发送新增内容
-                        if len(answer_text) > last_yield_length:
-                            # 清理转义字符
-                            clean_answer = answer_text.replace('\\n', '\n').replace('\\"', '"')
-                            
-                            # 检查是否包含"参考文献:"，只发送之前的部分
-                            if '\n\n参考文献:' in clean_answer:
-                                clean_answer = clean_answer[:clean_answer.find('\n\n参考文献:')]
-                            elif '\n参考文献:' in clean_answer:
-                                clean_answer = clean_answer[:clean_answer.find('\n参考文献:')]
-                            
-                            # 只发送新增的部分
-                            if len(clean_answer) > last_yield_length:
-                                new_content = clean_answer[last_yield_length:]
-                                last_yield_length = len(clean_answer)
-                                
-                                if new_content:  # 确保有内容才发送
-                                    yield {
-                                        "type": "answer_chunk",
-                                        "content": new_content,
-                                    }
-                        
-                        if answer_field_complete:
-                            print(f"[DEBUG] Answer field extraction completed, continuing to read remaining data...")
+                        if new_content:
+                            yield {
+                                "type": "answer_chunk",
+                                "content": new_content,
+                            }
             
-            print(f"[DEBUG] Stream completed, total length: {len(accumulated_content)}")
-            print(f"[DEBUG] Extracted answer length: {len(answer_text)}")
-            print(f"[DEBUG] Accumulated content preview: {accumulated_content[:500]}...")
-            print(f"[DEBUG] Accumulated content end: ...{accumulated_content[-500:]}")
+            # 流式完成后，立即发送预生成的参考文献
+            print(f"[DEBUG] Stream completed, answer length: {len(answer_text)}")
             
-            # 流式完成后，解析完整内容以提取 citations（如果还没发送）
-            if not citations_sent:
-                try:
-                    # 清理可能的markdown格式
-                    content = accumulated_content
-                    if content.startswith("```json"):
-                        content = content.replace("```json", "").replace("```", "").strip()
-                    elif content.startswith("```"):
-                        content = content.replace("```", "").strip()
-                    
-                    result = json.loads(content)
-                    print(f"[DEBUG] Parsed complete answer, citations count: {len(result.get('citations', []))}")
-                    
-                    # 发送最终的完整结果（包含 citations）
-                    yield {
-                        "type": "answer_complete",
-                        "answer_data": result
-                    }
-                    
-                except json.JSONDecodeError as e:
-                    print(f"[DEBUG] JSON parse failed: {e}")
-                    print(f"[DEBUG] Attempting to fix incomplete JSON...")
-                    
-                    # 尝试修复不完整的 JSON
-                    content = accumulated_content
-                    if content.startswith("```json"):
-                        content = content.replace("```json", "").replace("```", "").strip()
-                    elif content.startswith("```"):
-                        content = content.replace("```", "").strip()
-                    
-                    # 如果 JSON 不完整，尝试手动补全
-                    if not content.strip().endswith('}'):
-                        # 可能缺少结尾的 }
-                        # 尝试找到最后一个完整的 citation 项
-                        import re
-                        # 查找所有 citation 项
-                        citations_pattern = r'"citations"\s*:\s*\[(.*?)(?:\]|$)'
-                        citations_match = re.search(citations_pattern, content, re.DOTALL)
-                        
-                        if citations_match:
-                            citations_content = citations_match.group(1)
-                            # 补全可能不完整的 JSON
-                            content = content.rstrip() + ']}'
-                    
-                    # 再次尝试解析
-                    try:
-                        result = json.loads(content)
-                        print(f"[DEBUG] Successfully parsed after fixing, citations count: {len(result.get('citations', []))}")
-                        yield {
-                            "type": "answer_complete",
-                            "answer_data": result
-                        }
-                    except json.JSONDecodeError as e2:
-                        print(f"[DEBUG] Still failed after fixing: {e2}")
-                        # 如果仍然失败，使用提取方法
-                        result = self._extract_answer_from_text(accumulated_content)
-                        yield {
-                            "type": "answer_complete",
-                            "answer_data": result
-                        }
-            else:
-                print(f"[DEBUG] Citations already sent early, skipping final parse")
+            if not citations_sent and pre_generated_citations:
+                print(f"[DEBUG] 发送预生成的参考文献: {len(pre_generated_citations)} items")
+                
+                # 构造完整的answer_data
+                answer_data = {
+                    "answer": answer_text.strip(),
+                    "citations": pre_generated_citations
+                }
+                
+                yield {
+                    "type": "answer_complete",
+                    "answer_data": answer_data
+                }
+                citations_sent = True
                 
         except Exception as e:
             print(f"[DEBUG] Error in streaming answer: {e}")

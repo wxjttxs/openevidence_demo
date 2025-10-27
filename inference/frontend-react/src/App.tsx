@@ -100,7 +100,7 @@ function App() {
           })
           
           // 检查是否是完成事件（各种结束情况）
-          const endEvents = ['final-answer', 'no-answer', 'timeout', 'cancelled', 'error']
+          const endEvents = ['final-answer', 'answer_complete', 'no-answer', 'timeout', 'cancelled', 'error']
           if (endEvents.includes(newMessage.eventType || '')) {
             console.log(`📌 收到结束事件: ${newMessage.eventType}，停止处理状态`)
             setIsProcessing(false)  // ← 关键：立即停止处理状态
@@ -109,6 +109,7 @@ function App() {
             // 根据事件类型设置状态文本
             switch (newMessage.eventType) {
               case 'final-answer':
+              case 'answer_complete':
                 setStatusText('处理完成')
                 break
               case 'no-answer':
