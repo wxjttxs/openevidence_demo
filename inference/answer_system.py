@@ -56,7 +56,14 @@ When providing final answers, you MUST use academic citation format:
 3. Make citations clickable by using the proper format
 4. make sure the reference not the same
 
-Example:
+**CRITICAL: 参考文献编号规则（必须严格遵守）**
+- 编号必须从1开始，严格按照在答案中首次出现的顺序分配
+- 第一个引用的内容必须标记为[1]，第二个为[2]，第三个为[3]，以此类推
+- 绝对禁止跳跃编号，如[1][2][14]或[1][3][5]等
+- 编号必须连续递增：1, 2, 3, 4, 5...
+- 在citations数组中，id字段也必须对应：1, 2, 3, 4, 5...
+
+Example（正确示例）:
 "糖尿病主要分为1型糖尿病[1]和2型糖尿病[2]，还有妊娠糖尿病等特殊类型[3]。
 
 参考文献:
@@ -72,10 +79,16 @@ Example:
 
 请以JSON格式回答（注意JSON格式的正确性）：
 {{
-    "answer": "完整的答案内容，包含引用标号[1][2][3]等",
+    "answer": "完整的答案内容，包含引用标号[1][2][3]等（编号必须从1开始依次递增）",
     "citations": [
         {{
             "id": 1,
+            "title": "文档标题",
+            "preview": "引用内容前30字...",
+            "full_content": "完整的引用内容"
+        }},
+        {{
+            "id": 2,
             "title": "文档标题",
             "preview": "引用内容前30字...",
             "full_content": "完整的引用内容"
@@ -185,13 +198,36 @@ Example:
             last_yield_length = 0  # 记录上次发送的位置
             found_answer_start = False
             answer_field_complete = False  # 标记 answer 字段是否已完成提取
+            citations_sent = False  # 标记是否已发送citations
             
             # 逐块接收并智能提取answer字段内容
             for chunk in response:
                 if answer_field_complete:
-                    # answer 字段已提取完成，继续读取剩余数据但不处理
+                    # answer 字段已提取完成，继续读取剩余数据
                     if chunk.choices[0].delta.content:
                         accumulated_content += chunk.choices[0].delta.content
+                        
+                        # 尝试提前解析 citations（一旦检测到完整的 citations 数组）
+                        if not citations_sent and '"citations"' in accumulated_content and ']' in accumulated_content:
+                            try:
+                                # 尝试解析已接收的内容
+                                temp_content = accumulated_content.strip()
+                                # 如果还没有结束花括号，临时添加一个
+                                if not temp_content.endswith('}'):
+                                    temp_content = temp_content.rstrip(',') + '}'
+                                
+                                temp_result = json.loads(temp_content)
+                                if 'citations' in temp_result and len(temp_result.get('citations', [])) > 0:
+                                    # 成功解析到citations，立即发送
+                                    print(f"[DEBUG] Early citations parsed: {len(temp_result['citations'])} items")
+                                    yield {
+                                        "type": "answer_complete",
+                                        "answer_data": temp_result
+                                    }
+                                    citations_sent = True
+                            except json.JSONDecodeError:
+                                # 解析失败，继续等待更多数据
+                                pass
                     continue
                 
                 if chunk.choices[0].delta.content:
@@ -261,65 +297,68 @@ Example:
             print(f"[DEBUG] Accumulated content preview: {accumulated_content[:500]}...")
             print(f"[DEBUG] Accumulated content end: ...{accumulated_content[-500:]}")
             
-            # 流式完成后，解析完整内容以提取 citations
-            try:
-                # 清理可能的markdown格式
-                content = accumulated_content
-                if content.startswith("```json"):
-                    content = content.replace("```json", "").replace("```", "").strip()
-                elif content.startswith("```"):
-                    content = content.replace("```", "").strip()
-                
-                result = json.loads(content)
-                print(f"[DEBUG] Parsed complete answer, citations count: {len(result.get('citations', []))}")
-                
-                # 发送最终的完整结果（包含 citations）
-                yield {
-                    "type": "answer_complete",
-                    "answer_data": result
-                }
-                
-            except json.JSONDecodeError as e:
-                print(f"[DEBUG] JSON parse failed: {e}")
-                print(f"[DEBUG] Attempting to fix incomplete JSON...")
-                
-                # 尝试修复不完整的 JSON
-                content = accumulated_content
-                if content.startswith("```json"):
-                    content = content.replace("```json", "").replace("```", "").strip()
-                elif content.startswith("```"):
-                    content = content.replace("```", "").strip()
-                
-                # 如果 JSON 不完整，尝试手动补全
-                if not content.strip().endswith('}'):
-                    # 可能缺少结尾的 }
-                    # 尝试找到最后一个完整的 citation 项
-                    import re
-                    # 查找所有 citation 项
-                    citations_pattern = r'"citations"\s*:\s*\[(.*?)(?:\]|$)'
-                    citations_match = re.search(citations_pattern, content, re.DOTALL)
-                    
-                    if citations_match:
-                        citations_content = citations_match.group(1)
-                        # 补全可能不完整的 JSON
-                        content = content.rstrip() + ']}'
-                
-                # 再次尝试解析
+            # 流式完成后，解析完整内容以提取 citations（如果还没发送）
+            if not citations_sent:
                 try:
+                    # 清理可能的markdown格式
+                    content = accumulated_content
+                    if content.startswith("```json"):
+                        content = content.replace("```json", "").replace("```", "").strip()
+                    elif content.startswith("```"):
+                        content = content.replace("```", "").strip()
+                    
                     result = json.loads(content)
-                    print(f"[DEBUG] Successfully parsed after fixing, citations count: {len(result.get('citations', []))}")
+                    print(f"[DEBUG] Parsed complete answer, citations count: {len(result.get('citations', []))}")
+                    
+                    # 发送最终的完整结果（包含 citations）
                     yield {
                         "type": "answer_complete",
                         "answer_data": result
                     }
-                except json.JSONDecodeError as e2:
-                    print(f"[DEBUG] Still failed after fixing: {e2}")
-                    # 如果仍然失败，使用提取方法
-                    result = self._extract_answer_from_text(accumulated_content)
-                    yield {
-                        "type": "answer_complete",
-                        "answer_data": result
-                    }
+                    
+                except json.JSONDecodeError as e:
+                    print(f"[DEBUG] JSON parse failed: {e}")
+                    print(f"[DEBUG] Attempting to fix incomplete JSON...")
+                    
+                    # 尝试修复不完整的 JSON
+                    content = accumulated_content
+                    if content.startswith("```json"):
+                        content = content.replace("```json", "").replace("```", "").strip()
+                    elif content.startswith("```"):
+                        content = content.replace("```", "").strip()
+                    
+                    # 如果 JSON 不完整，尝试手动补全
+                    if not content.strip().endswith('}'):
+                        # 可能缺少结尾的 }
+                        # 尝试找到最后一个完整的 citation 项
+                        import re
+                        # 查找所有 citation 项
+                        citations_pattern = r'"citations"\s*:\s*\[(.*?)(?:\]|$)'
+                        citations_match = re.search(citations_pattern, content, re.DOTALL)
+                        
+                        if citations_match:
+                            citations_content = citations_match.group(1)
+                            # 补全可能不完整的 JSON
+                            content = content.rstrip() + ']}'
+                    
+                    # 再次尝试解析
+                    try:
+                        result = json.loads(content)
+                        print(f"[DEBUG] Successfully parsed after fixing, citations count: {len(result.get('citations', []))}")
+                        yield {
+                            "type": "answer_complete",
+                            "answer_data": result
+                        }
+                    except json.JSONDecodeError as e2:
+                        print(f"[DEBUG] Still failed after fixing: {e2}")
+                        # 如果仍然失败，使用提取方法
+                        result = self._extract_answer_from_text(accumulated_content)
+                        yield {
+                            "type": "answer_complete",
+                            "answer_data": result
+                        }
+            else:
+                print(f"[DEBUG] Citations already sent early, skipping final parse")
                 
         except Exception as e:
             print(f"[DEBUG] Error in streaming answer: {e}")

@@ -346,7 +346,7 @@ async def chat_stream(request: ChatRequest):
                     if session_id in active_sessions:
                         active_sessions[session_id]["status"] = "client_disconnected"
                 raise  # 重新抛出，让 FastAPI 处理
-                
+                    
             except Exception as e:
                 print(f"❌ [Session {session_id[:8]}] Stream generation error: {str(e)}")
                 import traceback
