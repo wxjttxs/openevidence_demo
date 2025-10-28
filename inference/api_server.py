@@ -9,6 +9,7 @@ import os
 import json
 import asyncio
 import uuid
+import logging
 from typing import Dict, Generator, Optional
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
@@ -19,6 +20,25 @@ import uvicorn
 import threading
 
 from streaming_agent import StreamingReactAgent
+
+# 配置日志
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+log_level_value = getattr(logging, log_level, logging.INFO)
+
+# 配置根日志记录器
+logging.basicConfig(
+    level=log_level_value,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    force=True  # 强制重新配置
+)
+
+# 设置所有相关模块的日志级别
+for module_name in ['streaming_agent', 'answer_system', 'tool_retrieval', '__main__']:
+    logging.getLogger(module_name).setLevel(log_level_value)
+
+logger = logging.getLogger(__name__)
+logger.info(f"日志级别设置为: {log_level}")
 
 # 配置
 API_PORT = int(os.getenv('API_PORT', 5006))
@@ -365,7 +385,7 @@ async def chat_stream(request: ChatRequest):
                     error_data = {
                         "type": "error",
                         "content": f"流式处理出错: {str(e)}",
-                                "session_id": session_id,
+                                    "session_id": session_id,
                         "timestamp": datetime.now().isoformat()
                     }
                     yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"

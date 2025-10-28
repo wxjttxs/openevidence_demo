@@ -1,8 +1,12 @@
 import json
 import re
+import logging
 from typing import Dict, List, Optional, Tuple
 from openai import OpenAI
 import os
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 
 class AnswerJudgmentSystem:
@@ -104,8 +108,8 @@ Example（正确示例）:
             if not isinstance(retrieval_content, str):
                 retrieval_content = str(retrieval_content)
                 
-            print(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
-            print(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
+            logger.debug(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
+            logger.debug(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
             
             messages = [
                 {
@@ -144,18 +148,18 @@ Example（正确示例）:
                         "accumulated": judgment_text
                     }
             
-            print(f"[DEBUG] Judgment text complete (length={len(judgment_text)})")
+            logger.debug(f"[DEBUG] Judgment text complete (length={len(judgment_text)})")
             
             # 流式完成后，直接从文本中提取判断结果（不再依赖JSON）
             try:
                 result = self._extract_judgment_from_text(accumulated_content)
-                print(f"[DEBUG] Extracted judgment from text: {result}")
+                logger.debug(f"[DEBUG] Extracted judgment from text: {result}")
                 yield {
                     "type": "judgment_complete",
                     "judgment": result
                 }
             except Exception as e:
-                print(f"[DEBUG] Error extracting judgment: {e}")
+                logger.debug(f"[DEBUG] Error extracting judgment: {e}")
                 # 返回默认值
                 yield {
                     "type": "judgment_complete",
@@ -163,7 +167,7 @@ Example（正确示例）:
                 }
                 
         except Exception as e:
-            print(f"[DEBUG] Error in streaming judgment: {e}")
+            logger.debug(f"[DEBUG] Error in streaming judgment: {e}")
             import traceback
             traceback.print_exc()
             
@@ -181,8 +185,8 @@ Example（正确示例）:
             if not isinstance(retrieval_content, str):
                 retrieval_content = str(retrieval_content)
                 
-            print(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
-            print(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
+            logger.debug(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
+            logger.debug(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
             
             messages = [
                 {
@@ -241,20 +245,20 @@ Example（正确示例）:
                                     result = json.loads(json_str)
                                     # 检查是否包含必要字段
                                     if 'can_answer' in result and 'confidence' in result:
-                                        print(f"[DEBUG] Early parsed judgment result from stream")
+                                        logger.debug(f"[DEBUG] Early parsed judgment result from stream")
                                         early_parsed = True
                                         # 继续接收剩余内容，但不再尝试解析
                                         break
                         except:
                             pass  # 继续接收更多内容
             
-            print(f"[DEBUG] Judgment response (streamed, length={len(content)}): {content[:200]}...")
+            logger.debug(f"[DEBUG] Judgment response (streamed, length={len(content)}): {content[:200]}...")
             
             # 尝试解析JSON（支持markdown包裹的JSON）
             try:
                 # 首先尝试直接解析
                 result = json.loads(content)
-                print(f"[DEBUG] Parsed judgment result: {result}")
+                logger.debug(f"[DEBUG] Parsed judgment result: {result}")
                 return result
             except json.JSONDecodeError:
                 # 尝试清理markdown标记后再解析
@@ -266,15 +270,15 @@ Example（正确示例）:
                 
                 try:
                     result = json.loads(cleaned_content)
-                    print(f"[DEBUG] Parsed judgment result after cleaning: {result}")
+                    logger.debug(f"[DEBUG] Parsed judgment result after cleaning: {result}")
                     return result
                 except json.JSONDecodeError:
                     # 如果仍然无法解析，尝试从文本中提取
-                    print(f"[DEBUG] Failed to parse JSON even after cleaning, extracting from text")
+                    logger.debug(f"[DEBUG] Failed to parse JSON even after cleaning, extracting from text")
                     return self._extract_judgment_from_text(content)
                 
         except Exception as e:
-            print(f"[DEBUG] Error in judgment: {e}")
+            logger.debug(f"[DEBUG] Error in judgment: {e}")
             import traceback
             traceback.print_exc()
             return {
@@ -307,11 +311,11 @@ Example（正确示例）:
                 }
                 citations.append(citation)
             
-            print(f"[DEBUG] 预生成参考文献完成: {len(citations)} items")
+            logger.debug(f"[DEBUG] 预生成参考文献完成: {len(citations)} items")
             return citations
             
         except Exception as e:
-            print(f"[DEBUG] 预生成参考文献失败: {e}")
+            logger.debug(f"[DEBUG] 预生成参考文献失败: {e}")
             return []
 
     def generate_answer_with_citations_stream(self, question: str, retrieval_results: List[Dict]):
@@ -327,11 +331,11 @@ Example（正确示例）:
             # 准备来源内容
             sources_content = self.create_sources_content_for_citation(retrieval_results)
             
-            print(f"[DEBUG] Streaming answer generation for question: {question[:100]}...")
-            print(f"[DEBUG] Sources content length: {len(sources_content)}")
+            logger.debug(f"[DEBUG] Streaming answer generation for question: {question[:100]}...")
+            logger.debug(f"[DEBUG] Sources content length: {len(sources_content)}")
             
             # 第一步：预生成参考文献
-            print(f"[DEBUG] 预生成参考文献...")
+            logger.debug(f"[DEBUG] 预生成参考文献...")
             pre_generated_citations = self._pre_generate_citations(question, retrieval_results)
             
             # 第二步：流式生成答案文本（不包含参考文献）
@@ -389,10 +393,10 @@ Example（正确示例）:
                             }
             
             # 流式完成后，立即发送预生成的参考文献
-            print(f"[DEBUG] Stream completed, answer length: {len(answer_text)}")
+            logger.debug(f"[DEBUG] Stream completed, answer length: {len(answer_text)}")
             
             if not citations_sent and pre_generated_citations:
-                print(f"[DEBUG] 发送预生成的参考文献: {len(pre_generated_citations)} items")
+                logger.debug(f"[DEBUG] 发送预生成的参考文献: {len(pre_generated_citations)} items")
                 
                 # 构造完整的answer_data
                 answer_data = {
@@ -407,7 +411,7 @@ Example（正确示例）:
                 citations_sent = True
                 
         except Exception as e:
-            print(f"[DEBUG] Error in streaming answer: {e}")
+            logger.debug(f"[DEBUG] Error in streaming answer: {e}")
             import traceback
             traceback.print_exc()
             yield {
@@ -421,8 +425,8 @@ Example（正确示例）:
             # 准备来源内容
             sources_content = self.create_sources_content_for_citation(retrieval_results)
             
-            print(f"[DEBUG] Generating answer with citations for question: {question[:100]}...")
-            print(f"[DEBUG] Sources content length: {len(sources_content)}")
+            logger.debug(f"[DEBUG] Generating answer with citations for question: {question[:100]}...")
+            logger.debug(f"[DEBUG] Sources content length: {len(sources_content)}")
             
             messages = [
                 {
@@ -444,7 +448,7 @@ Example（正确示例）:
             )
             
             content = response.choices[0].message.content
-            print(f"[DEBUG] Raw answer generation response: {content}")
+            logger.debug(f"[DEBUG] Raw answer generation response: {content}")
             
             # 尝试解析JSON
             try:
@@ -455,15 +459,15 @@ Example（正确示例）:
                     content = content.replace("```", "").strip()
                 
                 result = json.loads(content)
-                print(f"[DEBUG] Parsed answer result: {result}")
+                logger.debug(f"[DEBUG] Parsed answer result: {result}")
                 return result
             except json.JSONDecodeError as e:
-                print(f"[DEBUG] JSON parse failed: {e}")
+                logger.debug(f"[DEBUG] JSON parse failed: {e}")
                 # 如果不是有效JSON，尝试提取
                 return self._extract_answer_from_text(content)
                 
         except Exception as e:
-            print(f"[DEBUG] Error generating answer: {e}")
+            logger.debug(f"[DEBUG] Error generating answer: {e}")
             import traceback
             traceback.print_exc()
             return {
@@ -473,7 +477,7 @@ Example（正确示例）:
 
     def _extract_judgment_from_text(self, text: str) -> Dict:
         """从文本中提取判断结果（从格式化文本中提取）"""
-        print(f"[DEBUG] Extracting judgment from text: {text[:300]}...")
+        logger.debug(f"[DEBUG] Extracting judgment from text: {text[:300]}...")
         
         import re
         
@@ -540,12 +544,12 @@ Example（正确示例）:
             "reason": reason,
             "missing_info": missing_info
         }
-        print(f"[DEBUG] Extracted judgment result: {result}")
+        logger.debug(f"[DEBUG] Extracted judgment result: {result}")
         return result
 
     def _extract_answer_from_text(self, text: str) -> Dict:
         """从文本中提取答案和引用"""
-        print(f"[DEBUG] Extracting answer from text: {text[:200]}...")
+        logger.debug(f"[DEBUG] Extracting answer from text: {text[:200]}...")
         
         try:
             # 尝试从文本中提取JSON部分
@@ -562,20 +566,20 @@ Example（正确示例）:
                             json_text = text[start_idx:end_idx + len(end_marker.rstrip('\n'))]
                             try:
                                 result = json.loads(json_text)
-                                print(f"[DEBUG] Successfully extracted JSON: {result}")
+                                logger.debug(f"[DEBUG] Successfully extracted JSON: {result}")
                                 return result
                             except json.JSONDecodeError:
                                 continue
             
             # 如果无法提取JSON，创建一个简单的答案结构
-            print(f"[DEBUG] Could not extract JSON, creating simple answer structure")
+            logger.debug(f"[DEBUG] Could not extract JSON, creating simple answer structure")
             return {
                 "answer": text.strip(),
                 "citations": []
             }
             
         except Exception as e:
-            print(f"[DEBUG] Error in _extract_answer_from_text: {e}")
+            logger.debug(f"[DEBUG] Error in _extract_answer_from_text: {e}")
             return {
                 "answer": text.strip() if text else "无法生成答案",
                 "citations": []
@@ -618,7 +622,7 @@ Example（正确示例）:
 
     def format_final_answer_plain(self, answer_data: Dict) -> str:
         """格式化最终答案（纯文本版本）"""
-        print(f"[DEBUG] format_final_answer_plain called with: {answer_data}")
+        logger.debug(f"[DEBUG] format_final_answer_plain called with: {answer_data}")
         
         # 确保answer_data是字典
         if isinstance(answer_data, str):
@@ -634,8 +638,8 @@ Example（正确示例）:
         if not answer and isinstance(answer_data, str):
             answer = answer_data
         
-        print(f"[DEBUG] Extracted answer: {answer}")
-        print(f"[DEBUG] Extracted citations: {citations}")
+        logger.debug(f"[DEBUG] Extracted answer: {answer}")
+        logger.debug(f"[DEBUG] Extracted citations: {citations}")
         
         # 构建最终答案
         final_answer = answer
@@ -653,7 +657,7 @@ Example（正确示例）:
                 # 格式：[编号] 文章题目（换行）参考片段（前30字）
                 final_answer += f"[{citation_id}] {title}\n{preview}\n"
         
-        print(f"[DEBUG] Final formatted answer: {final_answer}")
+        logger.debug(f"[DEBUG] Final formatted answer: {final_answer}")
         return final_answer
 
     def parse_retrieval_results(self, retrieval_output: str) -> List[Dict]:
@@ -665,13 +669,13 @@ Example（正确示例）:
             if not isinstance(retrieval_output, str):
                 retrieval_output = str(retrieval_output)
             
-            print(f"[DEBUG] Parsing retrieval output: {retrieval_output[:200]}...")
+            logger.debug(f"[DEBUG] Parsing retrieval output: {retrieval_output[:200]}...")
             
             # 使用正则表达式解析检索结果
             pattern = r'\[(\d+)\] Document: (.*?)\nSimilarity: (.*?)\nContent: (.*?)(?=\n\[|\n---|\Z)'
             matches = re.findall(pattern, retrieval_output, re.DOTALL)
             
-            print(f"[DEBUG] Found {len(matches)} matches")
+            logger.debug(f"[DEBUG] Found {len(matches)} matches")
             
             for match in matches:
                 index, title, similarity, content = match
@@ -689,11 +693,11 @@ Example（正确示例）:
                     "full_content": content
                 })
             
-            print(f"[DEBUG] Parsed {len(results)} retrieval results")
+            logger.debug(f"[DEBUG] Parsed {len(results)} retrieval results")
             return results
             
         except Exception as e:
-            print(f"[DEBUG] Error parsing retrieval results: {str(e)}")
+            logger.debug(f"[DEBUG] Error parsing retrieval results: {str(e)}")
             import traceback
             traceback.print_exc()
             return []
@@ -718,5 +722,5 @@ Example（正确示例）:
             sources_content += f"相似度: {similarity:.3f}\n"
             sources_content += f"内容: {content}\n\n"
         
-        print(f"[DEBUG] Created sources content: {sources_content[:500]}...")
+        logger.debug(f"[DEBUG] Created sources content: {sources_content[:500]}...")
         return sources_content

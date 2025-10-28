@@ -64,7 +64,7 @@ For each function call, return a json object with function name and arguments wi
 
 # Thinking Process
 
-**CRITICAL**: You MUST ALWAYS start your response with a thorough thinking process enclosed in <think></think> tags. This is MANDATORY for every response.
+**CRITICAL**: You MUST ALWAYS start your response with a thorough thinking process enclosed in <think></think> tags. This is MANDATORY for every response,字数限制在300字以内.
 
 ## Medical Reasoning Framework
 

@@ -1,7 +1,11 @@
 import json
 import requests
+import logging
 from typing import Union, List, Dict, Optional
 from qwen_agent.tools.base import BaseTool, register_tool
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 
 @register_tool("retrieval", allow_overwrite=True)
@@ -103,8 +107,8 @@ class Retrieval(BaseTool):
             }
 
             # Debug输出
-            print(f"[DEBUG] Retrieval tool called with question: {question}")
-            print(f"[DEBUG] Request data: {request_data}")
+            logger.debug(f"Retrieval tool called with question: {question}")
+            logger.debug(f"Request data: {request_data}")
 
             # Make API request
             try:
@@ -117,7 +121,7 @@ class Retrieval(BaseTool):
                 response.raise_for_status()
                 
                 result = response.json()
-                print(f"[DEBUG] API response: {result}")
+                logger.debug(f"API response: {result}")
                 
                 if result.get("code") != 0:
                     return f"[Retrieval] API Error: {result.get('message', 'Unknown error')}"
@@ -129,7 +133,7 @@ class Retrieval(BaseTool):
                 return f"[Retrieval] Network Error: {str(e)}"
 
         except Exception as e:
-            print(f"[DEBUG] Retrieval tool error: {str(e)}")
+            logger.error(f"Retrieval tool error: {str(e)}")
             import traceback
             traceback.print_exc()
             return f"[Retrieval] Unexpected Error: {str(e)}"
