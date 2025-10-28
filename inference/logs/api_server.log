@@ -1,5 +1,5 @@
-2025-10-28 13:11:03,488 - base.py - 49 - WARNING - Tool `retrieval` already exists! Overwriting with class <class 'tool_retrieval.Retrieval'>.
-2025-10-28 13:11:03 - __main__ - INFO - 日志级别设置为: INFO
+2025-10-28 15:11:22,349 - base.py - 49 - WARNING - Tool `retrieval` already exists! Overwriting with class <class 'tool_retrieval.Retrieval'>.
+2025-10-28 15:11:22 - __main__ - INFO - 日志级别设置为: INFO
 /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/api_server.py:134: DeprecationWarning: 
         on_event is deprecated, use lifespan event handlers instead.
 
@@ -7,62 +7,65 @@
         [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
         
   @app.on_event("startup")
-🔧 启动配置:
-   API端口: 5006
-   vLLM端口: 6001
-   模型路径: /mnt/data6t/wangxiaojing/models/opensource_models/Alibaba-NLP/Tongyi-DeepResearch-30B-A3B
-
-2025-10-28 13:11:03 - api_server - INFO - 日志级别设置为: INFO
-INFO:     Started server process [3767880]
+2025-10-28 15:11:22 - __main__ - INFO - 🔧 启动配置:
+2025-10-28 15:11:22 - __main__ - INFO -    API端口: 5006
+2025-10-28 15:11:22 - __main__ - INFO -    vLLM端口: 6001
+2025-10-28 15:11:22 - __main__ - INFO -    模型路径: /mnt/data6t/wangxiaojing/models/opensource_models/Alibaba-NLP/Tongyi-DeepResearch-30B-A3B
+2025-10-28 15:11:22 - api_server - INFO - 日志级别设置为: INFO
+INFO:     Started server process [249670]
 INFO:     Waiting for application startup.
-🚀 启动Tongyi DeepResearch API服务器...
-✅ 推理代理配置模板初始化完成
-📡 LLM API地址: https://dashscope.aliyuncs.com/compatible-mode/v1
-🤖 模型: qwen3-32b
-🔑 API Key (masked): sk-f59e9bf...f991e
-🌐 API服务器将在端口 5006 上运行
-🔒 并发控制: 最大并发请求数 = 3
-💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数
+2025-10-28 15:11:22 - api_server - INFO - 🚀 启动Tongyi DeepResearch API服务器...
+2025-10-28 15:11:22 - api_server - INFO - ✅ 推理代理配置模板初始化完成
+2025-10-28 15:11:22 - api_server - INFO - 📡 LLM API地址: https://dashscope.aliyuncs.com/compatible-mode/v1
+2025-10-28 15:11:22 - api_server - INFO - 🤖 模型: qwen3-32b
+2025-10-28 15:11:22 - api_server - INFO - 🔑 API Key (masked): sk-f59e9bf...f991e
+2025-10-28 15:11:22 - api_server - INFO - 🌐 API服务器将在端口 5006 上运行
+2025-10-28 15:11:22 - api_server - INFO - 🔒 并发控制: 最大并发请求数 = 3
+2025-10-28 15:11:22 - api_server - INFO - 💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5006 (Press CTRL+C to quit)
-INFO:     127.0.0.1:47888 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:42556 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:29771 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:55901 - "POST /chat/stream HTTP/1.1" 200 OK
-⏳ [Session 7d698147] 等待获取处理槽位... (当前活跃: 0)
-🚀 [Session 7d698147] 获取槽位成功，开始处理问题: 男性，52岁。
+INFO:     127.0.0.1:46108 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:19889 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:38362 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:53492 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:47271 - "OPTIONS /chat/stream HTTP/1.1" 200 OK
+INFO:     10.31.95.28:47272 - "POST /chat/stream HTTP/1.1" 200 OK
+2025-10-28 15:12:01 - api_server - INFO - ⏳ [Session 7d275a00] 等待获取处理槽位... (当前活跃: 0)
+2025-10-28 15:12:01 - api_server - INFO - 🚀 [Session 7d275a00] 获取槽位成功，开始处理问题: 男性，52岁。
 
 主诉
 腹痛、恶心、呕吐1天。
 
 现病史
 患者1天前突发上腹痛，伴恶心，呕吐胃内容物...
-2025-10-28 13:11:17 - streaming_agent - INFO - === StreamingReactAgent.stream_run START ===
-2025-10-28 13:11:18 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-2025-10-28 13:11:36 - streaming_agent - INFO - ⏱️  【时间统计】检索工具执行完成，耗时: 4.24 秒
-⚠️ [Session 7d698147] 发送大数据包: 22746 字节, 类型: tool_result
-2025-10-28 13:11:40 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-INFO:     10.31.95.28:17781 - "GET /health HTTP/1.1" 200 OK
-2025-10-28 13:11:50 - streaming_agent - INFO - ⏱️  【时间统计】检索结果评估完成，耗时: 13.69 秒
-2025-10-28 13:11:53 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-INFO:     10.31.95.28:24569 - "GET /health HTTP/1.1" 200 OK
-2025-10-28 13:12:17 - streaming_agent - INFO - ⏱️  【时间统计】最终答案生成完成，耗时: 26.88 秒
-[DEBUG] Processing answer_data: <class 'dict'>, has citations: True
-[DEBUG] Full citations count: 10
-[DEBUG] Saved citation 1 to global_citations
-[DEBUG] Saved citation 2 to global_citations
-[DEBUG] Saved citation 3 to global_citations
-[DEBUG] Saved citation 4 to global_citations
-[DEBUG] Saved citation 5 to global_citations
-[DEBUG] Saved citation 6 to global_citations
-[DEBUG] Saved citation 7 to global_citations
-[DEBUG] Saved citation 8 to global_citations
-[DEBUG] Saved citation 9 to global_citations
-[DEBUG] Saved citation 10 to global_citations
-[DEBUG] Processed citations count: 10
-[DEBUG] Added answer_data to response_data, citations: 10
-2025-10-28 13:12:17 - streaming_agent - INFO - ⏱️  【时间统计】整个流程完成，总耗时: 59.80 秒
-2025-10-28 13:12:17 - streaming_agent - INFO - === StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===
-✅ [Session 7d698147] 处理完成，释放槽位
-✅ [Session 7d698147] 会话正常完成
-🔓 [Session 7d698147] 槽位已释放
+2025-10-28 15:12:02 - streaming_agent - INFO - === StreamingReactAgent.stream_run START ===
+2025-10-28 15:12:02 - streaming_agent - INFO - 🧠 已启用思考模式 (thinking_budget=1000)
+2025-10-28 15:12:02 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-28 15:12:14 - streaming_agent - INFO - ⏱️  【时间统计】思考过程完成，耗时: 12.14 秒
+2025-10-28 15:12:14 - streaming_agent - INFO - 💭 思考内容长度: 684 字
+2025-10-28 15:12:17 - streaming_agent - INFO - ✅ 流式调用成功 - 思考: 684字, 回答: 192字
+2025-10-28 15:12:17 - streaming_agent - INFO - ✅ LLM响应完成 - 思考: 684字, 回答: 192字
+2025-10-28 15:12:22 - streaming_agent - INFO - ⏱️  【时间统计】检索工具执行完成，耗时: 5.67 秒
+2025-10-28 15:12:22 - api_server - WARNING - ⚠️ [Session 7d275a00] 发送大数据包: 46778 字节, 类型: tool_result
+2025-10-28 15:12:27 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-28 15:12:29 - streaming_agent - INFO - ⏱️  【时间统计】检索结果评估完成，耗时: 7.00 秒
+INFO:     10.31.95.28:40327 - "GET /health HTTP/1.1" 200 OK
+2025-10-28 15:12:33 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:     10.31.95.28:13084 - "GET /health HTTP/1.1" 200 OK
+2025-10-28 15:13:23 - streaming_agent - INFO - ⏱️  【时间统计】最终答案生成完成，耗时: 53.83 秒
+2025-10-28 15:13:23 - streaming_agent - INFO - ⏱️  【时间统计】整个流程完成，总耗时: 81.66 秒
+2025-10-28 15:13:23 - streaming_agent - INFO - === StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===
+2025-10-28 15:13:23 - api_server - INFO - ✅ [Session 7d275a00] 处理完成，释放槽位
+2025-10-28 15:13:23 - api_server - INFO - ✅ [Session 7d275a00] 会话正常完成
+2025-10-28 15:13:23 - api_server - INFO - 🔓 [Session 7d275a00] 槽位已释放
+INFO:     10.31.95.28:27139 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:15808 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:29740 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:45468 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:47779 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:50112 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:33793 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:1498 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:37051 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:16784 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:28687 - "GET /health HTTP/1.1" 200 OK

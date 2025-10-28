@@ -15,7 +15,7 @@ class AnswerJudgmentSystem:
     def __init__(self):
         self.api_key = os.environ.get("API_KEY")
         self.api_base = os.environ.get("API_BASE")
-        self.model_name = os.environ.get("SUMMARY_MODEL_NAME", "")
+        self.model_name = os.environ.get("LLM_MODEL", "")
         
         self.client = OpenAI(
             api_key=self.api_key,
@@ -34,7 +34,7 @@ class AnswerJudgmentSystem:
 
 **能否回答**: 可以/不能
 **置信度**: 0.XX (0.0-1.0之间的数字)
-**分析**: 简要说明检索内容的相关性和完整性
+**分析**: 简要分析检索内容是否能够回答问题及原因，字数限制在300字以内。
 
 注意：输出完"分析"内容后，立即停止。不要输出任何JSON格式的内容。"""
 

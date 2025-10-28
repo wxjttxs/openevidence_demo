@@ -114,10 +114,10 @@ def initialize_agent_config():
         }
     }
     
-    print(f"✅ 推理代理配置模板初始化完成")
-    print(f"📡 LLM API地址: {LLM_BASE_URL}")
-    print(f"🤖 模型: {LLM_MODEL}")
-    print(f"🔑 API Key (masked): {LLM_API_KEY[:10]}...{LLM_API_KEY[-5:] if len(LLM_API_KEY) > 15 else ''}")
+    logger.info(f"✅ 推理代理配置模板初始化完成")
+    logger.info(f"📡 LLM API地址: {LLM_BASE_URL}")
+    logger.info(f"🤖 模型: {LLM_MODEL}")
+    logger.info(f"🔑 API Key (masked): {LLM_API_KEY[:10]}...{LLM_API_KEY[-5:] if len(LLM_API_KEY) > 15 else ''}")
 
 def create_agent_instance(temperature=0.85, top_p=0.95, presence_penalty=1.1, max_tokens=8000):
     """为每个请求创建独立的agent实例"""
@@ -134,11 +134,11 @@ def create_agent_instance(temperature=0.85, top_p=0.95, presence_penalty=1.1, ma
 @app.on_event("startup")
 async def startup_event():
     """应用启动时初始化"""
-    print("🚀 启动Tongyi DeepResearch API服务器...")
+    logger.info("🚀 启动Tongyi DeepResearch API服务器...")
     initialize_agent_config()
-    print(f"🌐 API服务器将在端口 {API_PORT} 上运行")
-    print(f"🔒 并发控制: 最大并发请求数 = {MAX_CONCURRENT_REQUESTS}")
-    print(f"💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数")
+    logger.info(f"🌐 API服务器将在端口 {API_PORT} 上运行")
+    logger.info(f"🔒 并发控制: 最大并发请求数 = {MAX_CONCURRENT_REQUESTS}")
+    logger.info(f"💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数")
 
 @app.get("/")
 async def root():
@@ -183,7 +183,7 @@ async def chat_stream(request: ChatRequest):
             
             try:
                 # 获取信号量（允许有限并发）
-                print(f"⏳ [Session {session_id[:8]}] 等待获取处理槽位... (当前活跃: {len(active_sessions)})")
+                logger.info(f"⏳ [Session {session_id[:8]}] 等待获取处理槽位... (当前活跃: {len(active_sessions)})")
                 acquired = processing_semaphore.acquire(timeout=300)  # 最多等待5分钟
                 
                 if not acquired:
@@ -205,7 +205,7 @@ async def chat_stream(request: ChatRequest):
                     yield f"data: {json.dumps(completed_data, ensure_ascii=False)}\n\n"
                     return
                 
-                print(f"🚀 [Session {session_id[:8]}] 获取槽位成功，开始处理问题: {request.question[:50]}...")
+                logger.info(f"🚀 [Session {session_id[:8]}] 获取槽位成功，开始处理问题: {request.question[:50]}...")
                 
                 # 为这个请求创建独立的agent实例
                 agent = create_agent_instance(
@@ -242,7 +242,7 @@ async def chat_stream(request: ChatRequest):
                     
                     # 每个事件前检查客户端是否断开
                     if cancelled["value"]:
-                        print(f"⚠️ [Session {session_id[:8]}] 检测到客户端断开，停止处理（已处理 {event_count} 个事件）")
+                        logger.warning(f"⚠️ [Session {session_id[:8]}] 检测到客户端断开，停止处理（已处理 {event_count} 个事件）")
                         break
                     
                     # 转换为JSON格式
@@ -273,10 +273,10 @@ async def chat_stream(request: ChatRequest):
                     if "answer_data" in event:
                         # 优化：为 citations 添加 preview 字段（前50字）
                         answer_data = event["answer_data"]
-                        print(f"[DEBUG] Processing answer_data: {type(answer_data)}, has citations: {'citations' in answer_data if isinstance(answer_data, dict) else 'N/A'}")
+                        logger.debug(f"[DEBUG] Processing answer_data: {type(answer_data)}, has citations: {'citations' in answer_data if isinstance(answer_data, dict) else 'N/A'}")
                         if isinstance(answer_data, dict) and "citations" in answer_data:
                             full_citations = answer_data.get("citations", [])
-                            print(f"[DEBUG] Full citations count: {len(full_citations)}")
+                            logger.debug(f"[DEBUG] Full citations count: {len(full_citations)}")
                             
                             # 保存完整的 citations 到全局存储（供后续接口查询）
                             with session_lock:
@@ -290,7 +290,7 @@ async def chat_stream(request: ChatRequest):
                                             "title": citation.get("title", ""),
                                             "full_content": full_content
                                         }
-                                        print(f"[DEBUG] Saved citation {citation_id} to global_citations")
+                                        logger.debug(f"[DEBUG] Saved citation {citation_id} to global_citations")
                             
                             # 处理发送给前端的 citations（只包含 preview）
                             processed_citations = []
@@ -306,9 +306,9 @@ async def chat_stream(request: ChatRequest):
                                 processed_citations.append(processed_citation)
                             answer_data = answer_data.copy()
                             answer_data["citations"] = processed_citations
-                            print(f"[DEBUG] Processed citations count: {len(processed_citations)}")
+                            logger.debug(f"[DEBUG] Processed citations count: {len(processed_citations)}")
                         response_data["answer_data"] = answer_data
-                        print(f"[DEBUG] Added answer_data to response_data, citations: {len(response_data['answer_data'].get('citations', [])) if isinstance(response_data.get('answer_data'), dict) else 'N/A'}")
+                        logger.debug(f"[DEBUG] Added answer_data to response_data, citations: {len(response_data['answer_data'].get('citations', [])) if isinstance(response_data.get('answer_data'), dict) else 'N/A'}")
                     
                     # 检查是否是 completed 事件
                     if event.get("type") == "completed":
@@ -319,27 +319,27 @@ async def chat_stream(request: ChatRequest):
                         # 在序列化前记录事件类型
                         event_type = response_data.get('type')
                         if event_type == 'final_answer':
-                            print(f"🔍 [Session {session_id[:8]}] 准备序列化 final_answer 事件...")
-                            print(f"   - answer_data存在: {'answer_data' in response_data}")
+                            logger.info(f"🔍 [Session {session_id[:8]}] 准备序列化 final_answer 事件...")
+                            logger.info(f"   - answer_data存在: {'answer_data' in response_data}")
                             if 'answer_data' in response_data and isinstance(response_data['answer_data'], dict):
-                                print(f"   - citations数量: {len(response_data['answer_data'].get('citations', []))}")
+                                logger.info(f"   - citations数量: {len(response_data['answer_data'].get('citations', []))}")
                         
                         json_str = json.dumps(response_data, ensure_ascii=False)
                         
                         # 记录大数据包的大小
                         if len(json_str) > 10000:  # 超过 10KB
-                            print(f"⚠️ [Session {session_id[:8]}] 发送大数据包: {len(json_str)} 字节, 类型: {event_type}")
+                            logger.warning(f"⚠️ [Session {session_id[:8]}] 发送大数据包: {len(json_str)} 字节, 类型: {event_type}")
                         elif event_type == 'final_answer':
-                            print(f"✅ [Session {session_id[:8]}] final_answer序列化成功: {len(json_str)} 字节")
+                            logger.info(f"✅ [Session {session_id[:8]}] final_answer序列化成功: {len(json_str)} 字节")
                         
                         yield f"data: {json_str}\n\n"
                         
                         if event_type == 'final_answer':
-                            print(f"✅ [Session {session_id[:8]}] final_answer数据已yield")
+                            logger.info(f"✅ [Session {session_id[:8]}] final_answer数据已yield")
                     except Exception as json_error:
                         # JSON序列化失败：只记录日志，不发送error事件给前端（避免重复错误卡片）
-                        print(f"❌ [Session {session_id[:8]}] JSON序列化失败: {str(json_error)}")
-                        print(f"   Event type: {response_data.get('type')}")
+                        logger.error(f"❌ [Session {session_id[:8]}] JSON序列化失败: {str(json_error)}")
+                        logger.info(f"   Event type: {response_data.get('type')}")
                         import traceback
                         traceback.print_exc()
                         # 尝试发送简化版本（只包含基本字段）
@@ -352,12 +352,12 @@ async def chat_stream(request: ChatRequest):
                             }
                             yield f"data: {json.dumps(simple_data, ensure_ascii=False)}\n\n"
                         except:
-                            print(f"❌ [Session {session_id[:8]}] 连简化数据也无法序列化，跳过此事件")
+                            logger.error(f"❌ [Session {session_id[:8]}] 连简化数据也无法序列化，跳过此事件")
                             pass
                 
                 # 只有当 agent 没有发送 completed 事件时，才补发一个
                 if not has_completed:
-                    print(f"⚠️ [Session {session_id[:8]}] Agent未发送completed事件，补发")
+                    logger.warning(f"⚠️ [Session {session_id[:8]}] Agent未发送completed事件，补发")
                     completed_data = {
                         "type": "completed",
                         "content": "处理完成",
@@ -366,11 +366,11 @@ async def chat_stream(request: ChatRequest):
                     }
                     yield f"data: {json.dumps(completed_data, ensure_ascii=False)}\n\n"
                 
-                print(f"✅ [Session {session_id[:8]}] 处理完成，释放槽位")
+                logger.info(f"✅ [Session {session_id[:8]}] 处理完成，释放槽位")
                 
             except GeneratorExit:
                 # 客户端主动断开连接
-                print(f"⚠️ [Session {session_id[:8]}] 客户端断开连接（GeneratorExit）")
+                logger.warning(f"⚠️ [Session {session_id[:8]}] 客户端断开连接（GeneratorExit）")
                 cancelled["value"] = True
                 with session_lock:
                     if session_id in active_sessions:
@@ -378,7 +378,7 @@ async def chat_stream(request: ChatRequest):
                 raise  # 重新抛出，让 FastAPI 处理
                     
             except Exception as e:
-                print(f"❌ [Session {session_id[:8]}] Stream generation error: {str(e)}")
+                logger.error(f"❌ [Session {session_id[:8]}] Stream generation error: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 try:
@@ -408,13 +408,13 @@ async def chat_stream(request: ChatRequest):
                             # 根据 cancelled 状态设置不同的结束状态
                             if cancelled["value"]:
                                 active_sessions[session_id]["status"] = "client_disconnected"
-                                print(f"✅ [Session {session_id[:8]}] 客户端断开，会话已清理")
+                                logger.info(f"✅ [Session {session_id[:8]}] 客户端断开，会话已清理")
                             else:
                                 active_sessions[session_id]["status"] = "completed"
-                                print(f"✅ [Session {session_id[:8]}] 会话正常完成")
+                                logger.info(f"✅ [Session {session_id[:8]}] 会话正常完成")
                             active_sessions[session_id]["end_time"] = datetime.now().isoformat()
                 except Exception as e:
-                    print(f"⚠️ [Session {session_id[:8]}] 清理会话记录失败: {e}")
+                    logger.warning(f"⚠️ [Session {session_id[:8]}] 清理会话记录失败: {e}")
                 
                 # 清理agent实例
                 if agent is not None:
@@ -427,7 +427,7 @@ async def chat_stream(request: ChatRequest):
                 if acquired:
                     try:
                         processing_semaphore.release()
-                        print(f"🔓 [Session {session_id[:8]}] 槽位已释放")
+                        logger.info(f"🔓 [Session {session_id[:8]}] 槽位已释放")
                     except:
                         pass
         
@@ -540,7 +540,7 @@ async def get_citation_detail(citation_id: str):
         }
         
     except Exception as e:
-        print(f"❌ 获取引用详情失败: {str(e)}")
+        logger.error(f"❌ 获取引用详情失败: {str(e)}")
         import traceback
         traceback.print_exc()
         return JSONResponse(
@@ -552,11 +552,10 @@ async def get_citation_detail(citation_id: str):
         )
 
 if __name__ == "__main__":
-    print("🔧 启动配置:")
-    print(f"   API端口: {API_PORT}")
-    print(f"   vLLM端口: {VLLM_PORT}")
-    print(f"   模型路径: {MODEL_PATH}")
-    print()
+    logger.info("🔧 启动配置:")
+    logger.info(f"   API端口: {API_PORT}")
+    logger.info(f"   vLLM端口: {VLLM_PORT}")
+    logger.info(f"   模型路径: {MODEL_PATH}")
     
     uvicorn.run(
         "api_server:app",
