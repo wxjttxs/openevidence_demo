@@ -16,6 +16,7 @@ class AnswerJudgmentSystem:
         self.api_key = os.environ.get("API_KEY")
         self.api_base = os.environ.get("API_BASE")
         self.model_name = os.environ.get("LLM_MODEL", "")
+        self.summary_model_name = os.environ.get("SUMMARY_MODEL_NAME", "")
         
         self.client = OpenAI(
             api_key=self.api_key,
@@ -39,7 +40,7 @@ class AnswerJudgmentSystem:
 注意：输出完"分析"内容后，立即停止。不要输出任何JSON格式的内容。"""
 
         # 生成带引用答案的提示词
-        self.citation_prompt = """你是一个专业的问答专家。请基于提供的检索内容回答用户问题，并严格按照学术论文格式添加引用。
+        self.citation_prompt = """你是一个专业的临床医生。请基于提供的检索内容回答用户问题，并严格按照学术论文格式添加引用。
 
 用户问题: {question}
 
@@ -339,33 +340,51 @@ Example（正确示例）:
             pre_generated_citations = self._pre_generate_citations(question, retrieval_results)
             
             # 第二步：流式生成答案文本（不包含参考文献）
-            answer_prompt = f"""你是一个专业的问答专家。请基于提供的检索内容回答用户问题，并在答案中添加引用标号。
+            answer_prompt = f"""**请根据以下检索内容回答用户问题：**
 
-用户问题: {question}
+**提示：** 在回答中必须严格遵循引用编号规则。**不要生成参考文献列表**，仅需按顺序标记引用编号。
 
-检索内容及来源:
-{sources_content}
+## 引用编号规则（严格遵守）：
 
-要求：
-1. 在答案中使用引用标号[1][2][3]等
-2. 编号必须从1开始，严格按照在答案中首次出现的顺序分配
-3. 只生成答案内容，不要生成参考文献列表
+* 每次在答案中引用某篇文献时，必须根据引用顺序进行编号。
+* 第一次引用某个文献时，标记为[1]。
+* 第二次引用同一文献时，标记为[2]。
+* 第三次引用同一文献时，标记为[3]。
+* 编号从1开始，依照在答案中的引用先后顺序递增。
 
-请直接回答用户问题，在相关部分添加引用标号："""
+**注意：**
+
+* 请确保编号从第一个引用开始递增，不要跳号。
+* 错误示例：
+  “患者符合DKA[3]...应补液[1]...” ← 第一个引用应标记为[1]，第二个为[2]。
+  正确示例：
+  “患者符合DKA[1]...应补液[2]...” ← 正确按引用顺序标记。
+---
+## 检索内容：{sources_content}
+
+## 问题如下："""
             
             messages = [
                 {
-                    "role": "user",
+                    "role": "system",
                     "content": answer_prompt
+                },
+                {
+                    "role": "user",
+                    "content": question
                 }
             ]
             
-            # 使用流式API
+            # 使用流式API（优化首token响应速度）
+            import time
+            api_start_time = time.time()
+            logger.info(f"🚀 开始调用答案生成API (模型: {self.summary_model_name})")
+            
             response = self.client.chat.completions.create(
-                model=self.model_name,
+                model=self.summary_model_name,
                 messages=messages,
-                temperature=0.5,
-                max_tokens=8192,  # 增加 max_tokens 确保完整生成
+                temperature=0.1,  # 极低temperature确保严格遵守规则
+                max_tokens=2048,  # 进一步减少max_tokens加快首token (4096→2048)
                 stream=True  # 启用流式
             )
             
@@ -373,11 +392,19 @@ Example（正确示例）:
             answer_text = ""
             last_yield_length = 0  # 记录上次发送的位置
             citations_sent = False  # 标记是否已发送citations
+            first_token_received = False  # 标记首token
             
             # 简化的流式生成逻辑
             for chunk in response:
                 if chunk.choices[0].delta.content:
                     content_piece = chunk.choices[0].delta.content
+                    
+                    # 记录首token时间
+                    if not first_token_received:
+                        first_token_time = time.time() - api_start_time
+                        logger.info(f"⚡ 收到首个token，耗时: {first_token_time:.2f}秒")
+                        first_token_received = True
+                    
                     accumulated_content += content_piece
                     answer_text += content_piece
                     
@@ -392,16 +419,39 @@ Example（正确示例）:
                                 "content": new_content,
                             }
             
-            # 流式完成后，立即发送预生成的参考文献
+            # 流式完成后，过滤并发送实际使用的参考文献
             logger.debug(f"[DEBUG] Stream completed, answer length: {len(answer_text)}")
             
             if not citations_sent and pre_generated_citations:
-                logger.debug(f"[DEBUG] 发送预生成的参考文献: {len(pre_generated_citations)} items")
+                # 提取答案中实际使用的引用编号
+                import re
+                citation_numbers = set()
+                # 匹配 [数字] 格式
+                for match in re.finditer(r'\[(\d+)\]', answer_text):
+                    citation_numbers.add(int(match.group(1)))
                 
-                # 构造完整的answer_data
+                # 只保留答案中实际引用的文献
+                used_citations = []
+                for citation in pre_generated_citations:
+                    if citation['id'] in citation_numbers:
+                        used_citations.append(citation)
+                
+                # 按引用编号排序
+                used_citations.sort(key=lambda x: x['id'])
+                
+                logger.info(f"📚 答案中使用了 {len(used_citations)}/{len(pre_generated_citations)} 个参考文献: {sorted(citation_numbers)}")
+                
+                # 检查编号是否连续
+                if used_citations:
+                    citation_ids = [c['id'] for c in used_citations]
+                    expected_ids = list(range(1, len(citation_ids) + 1))
+                    if citation_ids != expected_ids:
+                        logger.warning(f"⚠️ 引用编号不连续！预期: {expected_ids}, 实际: {citation_ids}")
+                
+                # 构造完整的answer_data（只包含实际使用的citations）
                 answer_data = {
                     "answer": answer_text.strip(),
-                    "citations": pre_generated_citations
+                    "citations": used_citations
                 }
                 
                 yield {
@@ -703,12 +753,18 @@ Example（正确示例）:
             return []
 
     def create_sources_content_for_citation(self, retrieval_results: List[Dict]) -> str:
-        """为引用生成创建来源内容字符串"""
+        """为引用生成创建来源内容字符串（优化：限制内容长度）"""
         sources_content = ""
+        MAX_CONTENT_LENGTH = 800  # 每条检索结果最多800字
+        
         for i, result in enumerate(retrieval_results, 1):
             title = result.get("title", f"文档{i}")
             content = result.get("content", "")
             similarity = result.get("similarity", 0.0)
+            
+            # 限制内容长度，减少prompt tokens
+            if len(content) > MAX_CONTENT_LENGTH:
+                content = content[:MAX_CONTENT_LENGTH] + "..."
             
             # 确保结果有正确的ID（用于引用）
             if "id" not in result:
@@ -719,8 +775,7 @@ Example（正确示例）:
                 result["preview"] = content[:30] + "..." if len(content) > 30 else content
             
             sources_content += f"[{i}] 标题: {title}\n"
-            sources_content += f"相似度: {similarity:.3f}\n"
-            sources_content += f"内容: {content}\n\n"
+            sources_content += f"内容: {content}\n\n"  # 移除相似度，减少tokens
         
-        logger.debug(f"[DEBUG] Created sources content: {sources_content[:500]}...")
+        logger.info(f"📝 准备答案生成内容: {len(sources_content)} 字符, {len(retrieval_results)} 条检索结果")
         return sources_content

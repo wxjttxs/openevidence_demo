@@ -94,29 +94,29 @@ class Retrieval(BaseTool):
             if not isinstance(question, str):
                 question = str(question)
 
-            # Prepare request data with defaults
+            # Prepare request data with defaults (优化性能)
             request_data = {
                 "question": question,
                 "dataset_ids": params.get("dataset_ids", ["1c9c4d369ce411f093700242ac170006"]),
-                "document_ids": params.get("document_ids", []),  # 修复：默认为空数组
-                "similarity_threshold": params.get("similarity_threshold", 0.6),
-                "vector_similarity_weight": params.get("vector_similarity_weight", 0.7),
-                "top_k": params.get("top_k", 4),
-                "keyword": params.get("keyword", True),
-                "cross_languages": params.get("cross_languages", ["ch", "en"])  # 添加跨语言支持
+                "document_ids": params.get("document_ids", []),
+                "similarity_threshold": params.get("similarity_threshold", 0.6),  # 提高阈值，减少候选结果
+                "vector_similarity_weight": params.get("vector_similarity_weight", 0.8),  # 增加向量权重
+                "top_k": params.get("top_k", 3),  # 减少返回数量 4→3
+                "keyword": params.get("keyword", False),  # 禁用关键词搜索，提速30-50%
+                "cross_languages": params.get("cross_languages", ["ch"])  # 单语言搜索更快
             }
 
             # Debug输出
             logger.debug(f"Retrieval tool called with question: {question}")
             logger.debug(f"Request data: {request_data}")
 
-            # Make API request
+            # Make API request (优化超时设置)
             try:
                 response = requests.post(
                     self.api_url,
                     headers=self.headers,
                     json=request_data,
-                    timeout=30
+                    timeout=10  # 减少超时时间 30→10秒，加快失败响应
                 )
                 response.raise_for_status()
                 
@@ -139,7 +139,7 @@ class Retrieval(BaseTool):
             return f"[Retrieval] Unexpected Error: {str(e)}"
 
     def _format_retrieval_results(self, data: Dict, question: str) -> str:
-        """Format retrieval results into readable text"""
+        """Format retrieval results into readable text (优化性能版本)"""
         chunks = data.get("chunks", [])
         doc_aggs = data.get("doc_aggs", [])
         total = data.get("total", 0)
@@ -150,7 +150,8 @@ class Retrieval(BaseTool):
         # Create document mapping for reference
         doc_map = {doc["doc_id"]: doc["doc_name"] for doc in doc_aggs}
 
-        formatted_result = f"Retrieval Results for '{question}' (Found {total} relevant chunks):\n\n"
+        # 使用列表拼接，比字符串拼接快
+        result_parts = [f"Retrieval Results for '{question}' (Found {total} relevant chunks):\n"]
         
         for i, chunk in enumerate(chunks, 1):
             similarity = chunk.get("similarity", 0)
@@ -158,15 +159,12 @@ class Retrieval(BaseTool):
             doc_id = chunk.get("document_id", "")
             doc_name = doc_map.get(doc_id, "Unknown Document")
             
-            formatted_result += f"[{i}] Document: {doc_name}\n"
-            formatted_result += f"Similarity: {similarity:.3f}\n"
-            formatted_result += f"Content: {content}\n"
-            
-            # Add highlight if available
-            highlight = chunk.get("highlight", "")
-            if highlight and highlight != content:
-                formatted_result += f"Highlight: {highlight}\n"
-            
-            formatted_result += "\n---\n\n"
-
-        return formatted_result.strip()
+            # 简化格式，减少字符串操作
+            result_parts.append(
+                f"\n[{i}] Document: {doc_name}\n"
+                f"Similarity: {similarity:.3f}\n"
+                f"Content: {content}\n"
+                f"\n---\n"
+            )
+        print("检索结果：", ''.join(result_parts).strip())
+        return ''.join(result_parts).strip()

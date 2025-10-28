@@ -118,7 +118,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     "stop": ["\n<tool_response>", "<tool_response>"],
                     "temperature": self.llm_generate_cfg.get('temperature', 0.6),
                     "top_p": self.llm_generate_cfg.get('top_p', 0.95),
-                    "max_tokens": 8000,
+                    "max_tokens": 1000,
                     "presence_penalty": self.llm_generate_cfg.get('presence_penalty', 1.1),
                     "stream": True
                 }
