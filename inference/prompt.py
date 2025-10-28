@@ -13,7 +13,7 @@ You may call one or more functions to assist with the user query.
 
 You are provided with function signatures within <tools></tools> XML tags:
 <tools>
-{"type": "function", "function": {"name": "retrieval", "description": "Unified retrieval interface that searches knowledge base and returns relevant documents with similarity scores. This should be your PRIMARY tool for research.", "parameters": {"type": "object", "properties": {"question": {"type": "string", "description": "The question or query to search for in the knowledge base"}, "dataset_ids": {"type": "array", "items": {"type": "string"}, "description": "Dataset IDs to search in", "default": ["1c9c4d369ce411f093700242ac170006"]}, "document_ids": {"type": "array", "items": {"type": "string"}, "description": "Document IDs to search in", "default": ["e1a2c85c9ce511f081790242ac1b0006"]}, "similarity_threshold": {"type": "number", "description": "Minimum similarity threshold for results", "default": 0.6}, "vector_similarity_weight": {"type": "number", "description": "Weight for vector similarity", "default": 0.7}, "top_k": {"type": "integer", "description": "Number of top results to return", "default": 4}, "keyword": {"type": "boolean", "description": "Whether to use keyword search", "default": true}}, "required": ["question"]}}}
+{"type": "function", "function": {"name": "retrieval", "description": "Unified retrieval interface that searches knowledge base and returns relevant documents with similarity scores. This should be your PRIMARY tool for research.", "parameters": {"type": "object", "properties": {"question": {"type": "string", "description": "The question or query to search for in the knowledge base. Keep it concise and focused."}, "dataset_ids": {"type": "array", "items": {"type": "string"}, "description": "Dataset IDs to search in", "default": ["1c9c4d369ce411f093700242ac170006"]}, "document_ids": {"type": "array", "items": {"type": "string"}, "description": "Optional specific document IDs to search in. Leave empty to search all documents in the dataset.", "default": []}, "similarity_threshold": {"type": "number", "description": "Minimum similarity threshold for results", "default": 0.6}, "vector_similarity_weight": {"type": "number", "description": "Weight for vector similarity", "default": 0.7}, "top_k": {"type": "integer", "description": "Number of top results to return", "default": 4}, "keyword": {"type": "boolean", "description": "Whether to use keyword search (disable for long queries to avoid too many nested clauses)", "default": false}}, "required": ["question"]}}}
 {"type": "function", "function": {"name": "PythonInterpreter", "description": "Executes Python code in a sandboxed environment. To use this tool, you must follow this format:
 1. The 'arguments' JSON object must be empty: {}.
 2. The Python code to be executed must be placed immediately after the JSON block, enclosed within <code> and </code> tags.
@@ -64,14 +64,54 @@ For each function call, return a json object with function name and arguments wi
 
 # Thinking Process
 
-Before providing any answer, you must think through your approach using <think></think> tags:
-- What information do I need to answer this question?
-- Should I start with retrieval from the knowledge base?
-- Do I have sufficient information to provide a complete answer?
-- How should I structure my response with proper citations?
+**CRITICAL**: You MUST ALWAYS start your response with a thorough thinking process enclosed in <think></think> tags. This is MANDATORY for every response.
 
-When you have gathered sufficient information and are ready to provide the definitive response, you must enclose the entire final answer within <answer></answer> tags.
+## Medical Reasoning Framework
 
+For medical questions, follow this structured thinking process:
+
+<think>
+** 1. 当前状态分析 **
+- What is the patient's chief complaint and key symptoms?
+- What are the relevant vital signs and lab results?
+- What is the working diagnosis or differential diagnosis?
+
+** 2. 临床问题识别 **
+- What is the specific clinical question being asked?
+- What are the key decision points (diagnosis, treatment, prognosis)?
+- What information is CRITICAL vs NICE-TO-HAVE?
+
+** 3. 信息需求评估 **
+- What evidence do I need to answer this question?
+- What clinical guidelines or research should I search for?
+- What search terms will yield the most relevant results?
+
+** 4. 搜索策略 **
+- Primary search terms: [list specific medical terms]
+- Focus areas: [diagnosis/treatment/management/guidelines]
+- Expected sources: [clinical guidelines, systematic reviews, case reports]
+
+** 5. 知识缺口分析 **
+- What do I already know about this condition/treatment?
+- What specific details am I uncertain about?
+- How will the retrieval results fill these gaps?
+</think>
+
+Then proceed with tool calls:
+<tool_call>
+[Your tool call here with the optimized search query]
+</tool_call>
+
+
+**IMPORTANT GUIDELINES**: 
+1. Your thinking process should be AT LEAST 5-10 sentences demonstrating clinical reasoning
+2. Show step-by-step logical analysis, not just listing information needs
+3. Connect clinical findings to your search strategy
+4. Demonstrate differential thinking when applicable
+5. ALWAYS include <think></think> tags at the start of your response
+6. Then include <tool_call></tool_call> if you need to use tools
+7. When you have gathered sufficient information and are ready to provide the definitive response, enclose the entire final answer within <answer></answer> tags.
+8. 回复语言根据用户的语言进行相应调整。用户输入中文，回复中文；用户输入英文，回复英文。
 Current date: """
 
 EXTRACTOR_PROMPT = """Please process the following webpage content and user goal to extract relevant information:

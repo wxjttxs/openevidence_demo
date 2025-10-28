@@ -22,8 +22,15 @@ from streaming_agent import StreamingReactAgent
 
 # 配置
 API_PORT = int(os.getenv('API_PORT', 5006))
+
+# LLM 配置：从环境变量读取
+LLM_BASE_URL = os.getenv('LLM_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+LLM_API_KEY = os.getenv('LLM_API_KEY', 'your-api-key-here')
+LLM_MODEL = os.getenv('LLM_MODEL', 'qwen3-max')
+
+# 兼容旧的 vLLM 配置（如果需要本地模型）
 VLLM_PORT = int(os.getenv('PLANNING_PORTS', 6001))
-MODEL_PATH = os.getenv('MODEL_PATH', '/path/to/your/model')
+MODEL_PATH = os.getenv('MODEL_PATH', LLM_MODEL)  # 默认使用 LLM_MODEL
 
 # 并发控制
 MAX_CONCURRENT_REQUESTS = int(os.getenv('MAX_CONCURRENT_REQUESTS', 3))  # 最大并发数
@@ -54,7 +61,7 @@ class ChatRequest(BaseModel):
     temperature: Optional[float] = 0.85
     top_p: Optional[float] = 0.95
     presence_penalty: Optional[float] = 1.1
-    max_tokens: Optional[int] = 10000
+    max_tokens: Optional[int] = 8000
     session_id: Optional[str] = None  # 可选的会话ID
 
 class ChatResponse(BaseModel):
@@ -76,20 +83,23 @@ def initialize_agent_config():
     
     # 配置LLM参数模板
     agent_config_template = {
-        "model": MODEL_PATH,
+        "model": LLM_MODEL,
+        "base_url": LLM_BASE_URL,
+        "api_key": LLM_API_KEY,
         "generate_cfg": {
             "temperature": 0.85,
             "top_p": 0.95,
             "presence_penalty": 1.1,
-            "max_tokens": 10000
+            "max_tokens": 8000
         }
     }
     
     print(f"✅ 推理代理配置模板初始化完成")
-    print(f"📡 vLLM服务器地址: http://localhost:{VLLM_PORT}/v1")
-    print(f"🤖 模型路径: {MODEL_PATH}")
+    print(f"📡 LLM API地址: {LLM_BASE_URL}")
+    print(f"🤖 模型: {LLM_MODEL}")
+    print(f"🔑 API Key (masked): {LLM_API_KEY[:10]}...{LLM_API_KEY[-5:] if len(LLM_API_KEY) > 15 else ''}")
 
-def create_agent_instance(temperature=0.85, top_p=0.95, presence_penalty=1.1, max_tokens=10000):
+def create_agent_instance(temperature=0.85, top_p=0.95, presence_penalty=1.1, max_tokens=8000):
     """为每个请求创建独立的agent实例"""
     import copy
     config = copy.deepcopy(agent_config_template)
@@ -207,7 +217,7 @@ async def chat_stream(request: ChatRequest):
                 has_completed = False  # 标记是否已发送 completed 事件
                 
                 event_count = 0
-                for event in agent.stream_run(request.question, VLLM_PORT, cancelled=cancelled):
+                for event in agent.stream_run(request.question, cancelled=cancelled):
                     event_count += 1
                     
                     # 每个事件前检查客户端是否断开
@@ -355,11 +365,11 @@ async def chat_stream(request: ChatRequest):
                     error_data = {
                         "type": "error",
                         "content": f"流式处理出错: {str(e)}",
-                        "session_id": session_id,
+                                "session_id": session_id,
                         "timestamp": datetime.now().isoformat()
                     }
                     yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-                    
+        
                     # 发送 completed 事件以确保流正确关闭
                     completed_data = {
                         "type": "completed",
@@ -444,7 +454,7 @@ async def chat(request: ChatRequest):
         
         # 收集所有事件
         events = []
-        for event in agent.stream_run(request.question, VLLM_PORT):
+        for event in agent.stream_run(request.question):
             events.append(event)
         
         return {

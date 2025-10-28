@@ -1,5 +1,8 @@
 #!/bin/bash
+# 加载 .env 文件中的环境变量
+set -a  # 自动导出所有变量
 source .env
+set +a  # 关闭自动导出
 # 简化启动脚本 - 仅用于测试Web界面，不启动vLLM
 # 加载conda的初始化脚本
 source ~/anaconda3/etc/profile.d/conda.sh  # 或者你的conda安装路径

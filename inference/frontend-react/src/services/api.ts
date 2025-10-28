@@ -281,6 +281,7 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       }
 
     case 'tool_result':
+      console.log('[DEBUG] Processing tool_result event:', { content, result: result?.substring(0, 100) })
       return {
         ...baseMessage,
         id: `result-${Date.now()}`,
@@ -300,12 +301,24 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       }
 
     case 'retrieval_judgment':
+      // 使用固定ID，让多个判断进度事件更新同一个卡片
       return {
         ...baseMessage,
-        id: `judgment-${Date.now()}`,
+        id: currentMessageId || 'judgment-current',
         type: 'assistant',
         content,
         eventType: 'retrieval-judgment',
+      }
+
+    case 'judgment_streaming':
+      // 流式判断文本，使用固定ID更新同一个卡片
+      return {
+        ...baseMessage,
+        id: 'judgment-streaming',
+        type: 'assistant',
+        content,
+        eventType: 'judgment-streaming',
+        isStreaming: event.is_streaming || false,
       }
 
     case 'judgment_result':

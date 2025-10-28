@@ -25,6 +25,16 @@ export default function ChatContainer({ messages, isProcessing, onCitationClick 
 
   useEffect(() => {
     scrollToBottom()
+    
+    // 调试：检查 tool-result 消息
+    const toolResults = messages.filter(m => m.type === 'tool-result' || m.eventType === 'tool-result')
+    if (toolResults.length > 0) {
+      console.log('📊 ChatContainer 中的 tool-result 消息:', toolResults.length, toolResults.map(m => ({
+        id: m.id,
+        hasMetadata: !!m.metadata,
+        hasResult: !!m.metadata?.result
+      })))
+    }
   }, [messages])
 
   return (

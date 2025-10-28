@@ -67,6 +67,7 @@ const messageLabels: Record<string, string> = {
   'no-answer': '无答案',
   'cancelled': '已取消',
   'retrieval-judgment': '检索判断',
+  'judgment-streaming': '判断结果',
   'judgment-result': '判断结果',
   'judgment-error': '判断错误',
   'answer-generation': '生成答案',
@@ -74,6 +75,18 @@ const messageLabels: Record<string, string> = {
 }
 
 export default function MessageComponent({ message, onCitationClick }: MessageProps) {
+  // 调试：检查 tool-result 类型的消息
+  if (message.type === 'tool-result' || message.eventType === 'tool-result') {
+    console.log('[DEBUG] MessageComponent received tool-result:', {
+      type: message.type,
+      eventType: message.eventType,
+      hasMetadata: !!message.metadata,
+      hasResult: !!message.metadata?.result,
+      resultLength: message.metadata?.result?.length,
+      metadata: JSON.stringify(message.metadata).substring(0, 200)
+    })
+  }
+  
   const Icon = messageIcons[message.type] || Bot
   const colorClass = messageColors[message.type] || messageColors.assistant
   
@@ -126,20 +139,95 @@ export default function MessageComponent({ message, onCitationClick }: MessagePr
       )
     }
 
-    // 工具结果
-    if (message.metadata?.result) {
+    // 工具结果（检索结果等）- 强制渲染
+    if (message.type === 'tool-result' || message.eventType === 'tool-result') {
+      console.log('🔧 [TOOL-RESULT] 开始渲染工具结果卡片:', { 
+        type: message.type, 
+        eventType: message.eventType,
+        content: message.content,
+        hasMetadata: !!message.metadata,
+        hasResult: !!message.metadata?.result,
+        resultLength: message.metadata?.result?.length,
+        resultPreview: message.metadata?.result?.substring(0, 200)
+      })
+      
+      // 始终显示内容，无论是否有 result
       return (
-        <CollapsibleSection title="查看结果">
-          <div className="bg-dark-900/50 rounded-lg p-4 max-h-96 overflow-y-auto">
-            <pre className="text-sm text-dark-300 whitespace-pre-wrap font-mono">
-              {message.metadata.result}
-            </pre>
-          </div>
-        </CollapsibleSection>
+        <div className="space-y-3">
+          <p className="text-dark-200 font-medium">{message.content || '检索完成'}</p>
+          {message.metadata?.result && (
+            <CollapsibleSection title="查看详细检索结果" defaultExpanded={false}>
+              <div className="bg-dark-900/50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                <pre className="text-sm text-dark-300 whitespace-pre-wrap font-mono leading-relaxed">
+                  {message.metadata.result}
+                </pre>
+              </div>
+            </CollapsibleSection>
+          )}
+        </div>
       )
     }
 
-    // 判断结果
+    // 流式判断结果（优雅渲染）
+    if (message.eventType === 'judgment-streaming') {
+      // 清理内容：移除JSON部分，只保留友好文本
+      let cleanContent = message.content
+      const jsonMatch = cleanContent.match(/\{[\s\S]*"can_answer"[\s\S]*\}/)
+      if (jsonMatch) {
+        cleanContent = cleanContent.substring(0, jsonMatch.index).trim()
+      }
+      
+      // 处理文本：将"**分析**:"后的内容用小字体显示
+      const processContent = (content: string) => {
+        // 匹配 **分析**: 后面的所有内容
+        const analysisMatch = content.match(/(\*\*分析\*\*:\s*)([\s\S]*)/)
+        if (analysisMatch) {
+          const beforeAnalysis = content.substring(0, analysisMatch.index! + analysisMatch[1].length)
+          const analysisContent = analysisMatch[2]
+          
+          return (
+            <>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeHighlight, rehypeKatex]}
+              >
+                {beforeAnalysis}
+              </ReactMarkdown>
+              <div className="text-sm text-dark-300 mt-1">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeHighlight, rehypeKatex]}
+                >
+                  {analysisContent}
+                </ReactMarkdown>
+              </div>
+            </>
+          )
+        }
+        
+        return (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeHighlight, rehypeKatex]}
+          >
+            {content}
+          </ReactMarkdown>
+        )
+      }
+      
+      return (
+        <div className="space-y-3">
+          <div className="prose prose-invert max-w-none">
+            {processContent(cleanContent)}
+          </div>
+          {message.isStreaming && (
+            <span className="inline-block w-2 h-5 bg-blue-400 animate-pulse ml-1" />
+          )}
+        </div>
+      )
+    }
+
+    // 判断结果（结构化显示）
     if (message.metadata?.judgment) {
       const { judgment } = message.metadata
       return (

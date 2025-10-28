@@ -84,6 +84,20 @@ function App() {
             })
           }
           
+          // 调试日志：tool-result 消息
+          if (newMessage.type === 'tool-result' || newMessage.eventType === 'tool-result') {
+            console.log(`🔧 Tool-result消息:`, {
+              id: newMessage.id,
+              type: newMessage.type,
+              eventType: newMessage.eventType,
+              hasMetadata: !!newMessage.metadata,
+              metadataKeys: newMessage.metadata ? Object.keys(newMessage.metadata) : [],
+              hasResult: !!newMessage.metadata?.result,
+              resultLength: newMessage.metadata?.result?.length,
+              metadata: newMessage.metadata
+            })
+          }
+          
           setMessages(prev => {
             // 在整个消息列表中查找相同ID的消息
             const existingIndex = prev.findIndex(msg => msg.id === newMessage.id)
@@ -92,11 +106,32 @@ function App() {
               // 找到了，更新现有消息
               const updated = [...prev]
               updated[existingIndex] = newMessage
+              
+              // 调试：tool-result 更新
+              if (newMessage.type === 'tool-result') {
+                console.log('🔄 Tool-result 更新现有消息:', existingIndex, newMessage)
+              }
+              
               return updated
             }
             
             // 没找到，添加新消息
-            return [...prev, newMessage]
+            const newList = [...prev, newMessage]
+            
+            // 调试：tool-result 添加新消息
+            if (newMessage.type === 'tool-result') {
+              console.log('➕ Tool-result 添加新消息:', newList.length - 1, {
+                id: newMessage.id,
+                type: newMessage.type,
+                eventType: newMessage.eventType,
+                content: newMessage.content,
+                hasMetadata: !!newMessage.metadata,
+                metadataKeys: newMessage.metadata ? Object.keys(newMessage.metadata) : [],
+                metadataResult: newMessage.metadata?.result ? `${newMessage.metadata.result.substring(0, 100)}...` : 'undefined'
+              })
+            }
+            
+            return newList
           })
           
           // 检查是否是完成事件（各种结束情况）

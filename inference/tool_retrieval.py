@@ -45,7 +45,7 @@ class Retrieval(BaseTool):
             "keyword": {
                 "type": "boolean",
                 "description": "Whether to use keyword search",
-                "default": True
+                "default": False
             },
             "highlight": {
                 "type": "boolean",

@@ -18,28 +18,21 @@ class AnswerJudgmentSystem:
             base_url=self.api_base,
         )
         
-        # 判断检索内容是否能回答问题的提示词
-        self.judgment_prompt = """你是一个专业的问答系统评估专家。请评估检索到的内容是否能够回答用户的问题。
+        # 判断检索内容是否能回答问题的提示词（友好格式输出）
+        self.judgment_prompt = """评估检索内容是否能回答用户问题。
 
-用户问题: {question}
+问题: {question}
 
 检索内容:
 {retrieval_content}
 
-请分析检索内容是否包含足够的信息来回答用户问题。评估标准：
-1. 检索内容是否与问题主题相关
-2. 检索内容是否包含回答问题所需的关键信息
-3. 检索内容的质量和完整性
+请按以下格式输出评估结果：
 
-注意：只要检索内容包含相关信息，即使不够完整，也应该判断为可以回答。
+**能否回答**: 可以/不能
+**置信度**: 0.XX (0.0-1.0之间的数字)
+**分析**: 简要说明检索内容的相关性和完整性
 
-请以JSON格式回答：
-{{
-    "can_answer": true/false,
-    "confidence": 0.0-1.0,
-    "reason": "详细说明判断理由",
-    "missing_info": "如果不能完整回答，说明缺少什么信息"
-}}"""
+注意：输出完"分析"内容后，立即停止。不要输出任何JSON格式的内容。"""
 
         # 生成带引用答案的提示词
         self.citation_prompt = """你是一个专业的问答专家。请基于提供的检索内容回答用户问题，并严格按照学术论文格式添加引用。
@@ -102,8 +95,8 @@ Example（正确示例）:
     ]
 }}"""
 
-    def judge_retrieval_sufficiency(self, question: str, retrieval_content: str) -> Dict:
-        """判断检索内容是否足够回答问题"""
+    def judge_retrieval_sufficiency_stream(self, question: str, retrieval_content: str):
+        """流式判断检索内容是否足够回答问题 - 实时流式输出判断文本"""
         try:
             # 确保输入都是字符串
             if not isinstance(question, str):
@@ -111,7 +104,7 @@ Example（正确示例）:
             if not isinstance(retrieval_content, str):
                 retrieval_content = str(retrieval_content)
                 
-            print(f"[DEBUG] Judging retrieval sufficiency for question: {question[:100]}...")
+            print(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
             print(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
             
             messages = [
@@ -124,17 +117,138 @@ Example（正确示例）:
                 }
             ]
             
+            # 使用流式API
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                temperature=0.3,
-                max_tokens=10000,
-                stream=False,
-                extra_body={"enable_thinking": False}  # 明确禁用thinking模式（非流式调用）
+                temperature=0.1,
+                max_tokens=500,
+                stream=True,
+                extra_body={"enable_thinking": False}
             )
             
-            content = response.choices[0].message.content
-            print(f"[DEBUG] Judgment response: {content}")
+            # 流式接收并实时发送内容
+            accumulated_content = ""
+            judgment_text = ""
+            
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    chunk_text = chunk.choices[0].delta.content
+                    accumulated_content += chunk_text
+                    judgment_text += chunk_text
+                    
+                    # 实时发送判断文本片段
+                    yield {
+                        "type": "judgment_chunk",
+                        "content": chunk_text,
+                        "accumulated": judgment_text
+                    }
+            
+            print(f"[DEBUG] Judgment text complete (length={len(judgment_text)})")
+            
+            # 流式完成后，直接从文本中提取判断结果（不再依赖JSON）
+            try:
+                result = self._extract_judgment_from_text(accumulated_content)
+                print(f"[DEBUG] Extracted judgment from text: {result}")
+                yield {
+                    "type": "judgment_complete",
+                    "judgment": result
+                }
+            except Exception as e:
+                print(f"[DEBUG] Error extracting judgment: {e}")
+                # 返回默认值
+                yield {
+                    "type": "judgment_complete",
+                    "judgment": {"can_answer": True, "confidence": 0.5, "reason": "无法解析判断结果"}
+                }
+                
+        except Exception as e:
+            print(f"[DEBUG] Error in streaming judgment: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            yield {
+                "type": "judgment_error",
+                "content": f"判断过程出错: {str(e)}"
+            }
+
+    def judge_retrieval_sufficiency(self, question: str, retrieval_content: str) -> Dict:
+        """判断检索内容是否足够回答问题 - 使用流式输出加速"""
+        try:
+            # 确保输入都是字符串
+            if not isinstance(question, str):
+                question = str(question)
+            if not isinstance(retrieval_content, str):
+                retrieval_content = str(retrieval_content)
+                
+            print(f"[DEBUG] Judging retrieval sufficiency (streaming) for question: {question[:100]}...")
+            print(f"[DEBUG] Retrieval content length: {len(retrieval_content)}")
+            
+            messages = [
+                {
+                    "role": "user", 
+                    "content": self.judgment_prompt.format(
+                        question=question,
+                        retrieval_content=retrieval_content
+                    )
+                }
+            ]
+            
+            # 使用流式API加速响应，限制token数以加快判断速度
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=0.1,  # 降低温度，提高确定性和速度
+                max_tokens=500,  # 大幅减少token数，加快响应（判断只需要简短的JSON）
+                stream=True,  # 改为流式
+                extra_body={"enable_thinking": False}
+            )
+            
+            # 流式接收并累积内容，尝试提前检测完整JSON
+            content = ""
+            early_parsed = False
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content += chunk.choices[0].delta.content
+                    
+                    # 尝试提前检测完整的JSON对象（当检测到 }} 时）
+                    if not early_parsed and content.count('}') >= 2:
+                        try:
+                            # 尝试解析当前累积的内容
+                            temp_content = content.strip()
+                            if temp_content.startswith("```json"):
+                                temp_content = temp_content.replace("```json", "").strip()
+                            elif temp_content.startswith("```"):
+                                temp_content = temp_content.replace("```", "").strip()
+                            
+                            # 尝试找到第一个完整的JSON对象
+                            if '{' in temp_content and '}' in temp_content:
+                                start = temp_content.find('{')
+                                # 简单的括号匹配
+                                depth = 0
+                                end = -1
+                                for i in range(start, len(temp_content)):
+                                    if temp_content[i] == '{':
+                                        depth += 1
+                                    elif temp_content[i] == '}':
+                                        depth -= 1
+                                        if depth == 0:
+                                            end = i + 1
+                                            break
+                                
+                                if end > 0:
+                                    json_str = temp_content[start:end]
+                                    result = json.loads(json_str)
+                                    # 检查是否包含必要字段
+                                    if 'can_answer' in result and 'confidence' in result:
+                                        print(f"[DEBUG] Early parsed judgment result from stream")
+                                        early_parsed = True
+                                        # 继续接收剩余内容，但不再尝试解析
+                                        break
+                        except:
+                            pass  # 继续接收更多内容
+            
+            print(f"[DEBUG] Judgment response (streamed, length={len(content)}): {content[:200]}...")
             
             # 尝试解析JSON（支持markdown包裹的JSON）
             try:
@@ -358,45 +472,64 @@ Example（正确示例）:
             }
 
     def _extract_judgment_from_text(self, text: str) -> Dict:
-        """从文本中提取判断结果（改进版：能够提取JSON中的实际值）"""
+        """从文本中提取判断结果（从格式化文本中提取）"""
         print(f"[DEBUG] Extracting judgment from text: {text[:300]}...")
         
-        # 尝试提取JSON对象（即使格式不完美）
         import re
         
         # 默认值
-        can_answer = False
-        confidence = 0.5
-        reason = "无法解析判断结果"
-        missing_info = "无法确定"
+        can_answer = True  # 默认假设可以回答
+        confidence = 0.8
+        reason = "检索内容相关"
+        missing_info = ""
         
-        # 尝试提取 can_answer
-        can_answer_match = re.search(r'"can_answer"\s*:\s*(true|false)', text, re.IGNORECASE)
+        # 提取 **能否回答**: 可以/不能
+        can_answer_match = re.search(r'\*\*能否回答\*\*:\s*(可以|不能)', text)
         if can_answer_match:
-            can_answer = can_answer_match.group(1).lower() == 'true'
+            can_answer = can_answer_match.group(1) == "可以"
         else:
-            # 备用：从文本中推断
-            can_answer = "true" in text.lower() or "可以" in text or "能够" in text
+            # 备用：从JSON中提取（如果有）
+            can_answer_json = re.search(r'"can_answer"\s*:\s*(true|false)', text, re.IGNORECASE)
+            if can_answer_json:
+                can_answer = can_answer_json.group(1).lower() == 'true'
+            else:
+                # 从文本推断
+                can_answer = "可以" in text or "能够" in text
         
-        # 尝试提取 confidence
-        confidence_match = re.search(r'"confidence"\s*:\s*(0\.\d+|1\.0|0|1)', text)
+        # 提取 **置信度**: 0.XX
+        confidence_match = re.search(r'\*\*置信度\*\*:\s*(0\.\d+|1\.0|0|1)', text)
         if confidence_match:
             try:
                 confidence = float(confidence_match.group(1))
             except ValueError:
                 pass
-        
-        # 尝试提取 reason
-        reason_match = re.search(r'"reason"\s*:\s*"([^"]+)"', text, re.DOTALL)
-        if reason_match:
-            reason = reason_match.group(1).strip()
         else:
-            # 如果没有找到reason字段，使用清理后的文本片段
-            cleaned_text = re.sub(r'```json|```|"can_answer"|"confidence"|"reason"|"missing_info"', '', text)
-            cleaned_text = re.sub(r'[{}:,]', ' ', cleaned_text).strip()
-            reason = cleaned_text[:200] + "..." if len(cleaned_text) > 200 else cleaned_text
+            # 备用：从JSON中提取（如果有）
+            confidence_json = re.search(r'"confidence"\s*:\s*(0\.\d+|1\.0|0|1)', text)
+            if confidence_json:
+                try:
+                    confidence = float(confidence_json.group(1))
+                except ValueError:
+                    pass
         
-        # 尝试提取 missing_info
+        # 提取 **分析**: 后的内容作为reason
+        analysis_match = re.search(r'\*\*分析\*\*:\s*(.+?)(?:\n\n|\{|$)', text, re.DOTALL)
+        if analysis_match:
+            reason = analysis_match.group(1).strip()
+        else:
+            # 备用：从JSON中提取（如果有）
+            reason_json = re.search(r'"reason"\s*:\s*"([^"]+)"', text, re.DOTALL)
+            if reason_json:
+                reason = reason_json.group(1).strip()
+            else:
+                # 使用整个文本（清理后）
+                cleaned_text = re.sub(r'```json|```|\{.*\}', '', text, flags=re.DOTALL)
+                cleaned_text = re.sub(r'\*\*能否回答\*\*:.*?\n', '', cleaned_text)
+                cleaned_text = re.sub(r'\*\*置信度\*\*:.*?\n', '', cleaned_text)
+                cleaned_text = re.sub(r'\*\*分析\*\*:\s*', '', cleaned_text)
+                reason = cleaned_text.strip()[:300]
+        
+        # 尝试提取 missing_info（如果有JSON）
         missing_match = re.search(r'"missing_info"\s*:\s*"([^"]+)"', text, re.DOTALL)
         if missing_match:
             missing_info = missing_match.group(1).strip()

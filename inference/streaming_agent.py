@@ -19,7 +19,9 @@ class StreamingReactAgent(MultiTurnReactAgent):
             raise ValueError("llm parameter is required")
         
         self.llm_generate_cfg = llm["generate_cfg"]
-        self.llm_local_path = llm["model"]
+        self.llm_model = llm["model"]
+        self.llm_base_url = llm.get("base_url", "http://127.0.0.1:6001/v1")
+        self.llm_api_key = llm.get("api_key", "EMPTY")
         
         # 不调用父类的__init__，因为我们只需要其中的部分功能
         self.function_list = function_list or []
@@ -27,17 +29,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
         # 初始化答案判断系统
         self.answer_system = AnswerJudgmentSystem()
         
-    def call_server(self, msgs, planning_port, max_tries=3):
-        """调用vLLM服务器"""
+    def call_server(self, msgs, max_tries=3):
+        """调用LLM服务器"""
         from openai import OpenAI, APIError, APIConnectionError, APITimeoutError
         import random
-        
-        openai_api_key = "EMPTY"
-        openai_api_base = f"http://127.0.0.1:{planning_port}/v1"
 
         client = OpenAI(
-            api_key=openai_api_key,
-            base_url=openai_api_base,
+            api_key=self.llm_api_key,
+            base_url=self.llm_base_url,
             timeout=600.0,
         )
 
@@ -47,13 +46,13 @@ class StreamingReactAgent(MultiTurnReactAgent):
             try:
                 print(f"--- Attempting to call the service, try {attempt + 1}/{max_tries} ---")
                 chat_response = client.chat.completions.create(
-                    model=self.llm_local_path,
+                    model=self.llm_model,
                     messages=msgs,
                     stop=["\n<tool_response>", "<tool_response>"],
                     temperature=self.llm_generate_cfg.get('temperature', 0.6),
                     top_p=self.llm_generate_cfg.get('top_p', 0.95),
                     logprobs=True,
-                    max_tokens=10000,
+                    max_tokens=8000,
                     presence_penalty=self.llm_generate_cfg.get('presence_penalty', 1.1)
                 )
                 content = chat_response.choices[0].message.content
@@ -79,17 +78,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
         
         return f"vllm server error!!!"
     
-    def call_server_stream(self, msgs, planning_port, max_tries=3):
-        """流式调用vLLM服务器"""
+    def call_server_stream(self, msgs, max_tries=3):
+        """流式调用LLM服务器"""
         from openai import OpenAI, APIError, APIConnectionError, APITimeoutError
         import random
-        
-        openai_api_key = "EMPTY"
-        openai_api_base = f"http://127.0.0.1:{planning_port}/v1"
 
         client = OpenAI(
-            api_key=openai_api_key,
-            base_url=openai_api_base,
+            api_key=self.llm_api_key,
+            base_url=self.llm_base_url,
             timeout=600.0,
         )
 
@@ -99,12 +95,12 @@ class StreamingReactAgent(MultiTurnReactAgent):
             try:
                 print(f"--- Attempting to call the service (stream), try {attempt + 1}/{max_tries} ---")
                 stream = client.chat.completions.create(
-                    model=self.llm_local_path,
+                    model=self.llm_model,
                     messages=msgs,
                     stop=["\n<tool_response>", "<tool_response>"],
                     temperature=self.llm_generate_cfg.get('temperature', 0.6),
                     top_p=self.llm_generate_cfg.get('top_p', 0.95),
-                    max_tokens=10000,
+                    max_tokens=8000,
                     presence_penalty=self.llm_generate_cfg.get('presence_penalty', 1.1),
                     stream=True  # 启用流式
                 )
@@ -142,7 +138,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
         """计算token数量"""
         try: 
             from transformers import AutoTokenizer
-            tokenizer = AutoTokenizer.from_pretrained(self.llm_local_path) 
+            tokenizer = AutoTokenizer.from_pretrained(self.llm_model) 
         except Exception as e: 
             import tiktoken
             tokenizer = tiktoken.encoding_for_model(model)
@@ -179,7 +175,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
         else:
             return f"Error: Tool {tool_name} not found"
         
-    def stream_run(self, question: str, planning_port: int = 6001, cancelled: dict = None) -> Generator[Dict, None, None]:
+    def stream_run(self, question: str, cancelled: dict = None) -> Generator[Dict, None, None]:
         """
         流式运行推理过程，实时输出各个阶段的信息
         
@@ -196,7 +192,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
             cancelled = {"value": False}
         print(f"=== StreamingReactAgent.stream_run START ===")
         print(f"Question: {question}")
-        print(f"Planning port: {planning_port}")
+        print(f"LLM Model: {self.llm_model}")
         
         start_time = time.time()
         self.user_prompt = question
@@ -282,14 +278,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
             yield thinking_start_event
             
             try:
-                print(f"Calling LLM server (stream) on port {planning_port}")
+                print(f"Calling LLM server (stream) - Model: {self.llm_model}")
                 
                 # 使用流式方式获取LLM响应
                 accumulated_content = ""
                 in_think_tag = False
                 think_buffer = ""
                 
-                for chunk in self.call_server_stream(messages, planning_port):
+                for chunk in self.call_server_stream(messages):
                     # 在流式接收过程中检查客户端是否断开
                     if cancelled["value"]:
                         print(f"⚠️ 客户端断开，停止LLM流式接收")
@@ -300,10 +296,50 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     # 实时检测和提取 <think> 标签内容
                     if not in_think_tag and '<think>' in accumulated_content:
                         in_think_tag = True
-                        # 找到 <think> 后的内容
+                        # 找到 <think> 后的内容（不包含<think>标签本身）
                         start_pos = accumulated_content.find('<think>') + len('<think>')
-                        think_buffer = accumulated_content[start_pos:]
-                        chunk_to_send = think_buffer
+                        remaining_content = accumulated_content[start_pos:]
+                        
+                        # 检查是否已经包含结束标签
+                        if '</think>' in remaining_content:
+                            # 只提取到 </think> 之前的内容
+                            end_pos = remaining_content.find('</think>')
+                            think_buffer = remaining_content[:end_pos]
+                            chunk_to_send = think_buffer
+                            in_think_tag = False  # 立即标记为完成
+                        elif '<tool_call>' in remaining_content:
+                            # 只提取到 <tool_call> 之前的内容
+                            end_pos = remaining_content.find('<tool_call>')
+                            think_buffer = remaining_content[:end_pos]
+                            chunk_to_send = think_buffer
+                            in_think_tag = False  # 立即标记为完成
+                        else:
+                            think_buffer = remaining_content
+                            chunk_to_send = think_buffer
+                        
+                        # 发送第一块thinking内容（如果有的话）
+                        if chunk_to_send.strip():
+                            # 清理内容，确保不包含任何标签
+                            clean_content = chunk_to_send.strip()
+                            clean_accumulated = think_buffer.strip()
+                            
+                            # 移除可能的标签残留
+                            for tag in ['</think>', '<think>', '<tool_call>', '</tool_call>']:
+                                clean_content = clean_content.replace(tag, '')
+                                clean_accumulated = clean_accumulated.replace(tag, '')
+                            
+                            if clean_content:  # 确保清理后仍有内容
+                                thinking_chunk_event = {
+                                    "type": "thinking_chunk",
+                                    "content": clean_content,
+                                    "accumulated": clean_accumulated,
+                                    "is_streaming": not in_think_tag,  # 如果已经找到结束标签，则不再流式
+                                    "is_complete": not in_think_tag,
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                print(f"[DEBUG] Sending thinking_chunk: content_length={len(clean_content)}, accumulated_length={len(clean_accumulated)}")
+                                yield thinking_chunk_event
+                            
                     elif in_think_tag:
                         # 检查是否遇到结束标签或tool_call标签
                         if '</think>' in chunk or '<tool_call>' in chunk:
@@ -312,38 +348,57 @@ class StreamingReactAgent(MultiTurnReactAgent):
                             end_pos_tool = chunk.find('<tool_call>') if '<tool_call>' in chunk else len(chunk)
                             end_pos = min(end_pos_think, end_pos_tool)
                             
-                            # 提取结束标签前的内容
+                            # 提取结束标签前的内容（不包含标签本身）
                             chunk_to_send = chunk[:end_pos]
                             think_buffer += chunk_to_send
                             in_think_tag = False
                             
-                            # 发送最后一块thinking内容
+                            # 发送最后一块thinking内容（如果有的话）
                             if chunk_to_send.strip():
-                                thinking_chunk_event = {
-                                    "type": "thinking_chunk",
-                                    "content": chunk_to_send,
-                                    "accumulated": think_buffer.strip(),
-                                    "is_streaming": True,  # 仍在流式传输
-                                    "is_complete": True,
-                                    "timestamp": datetime.now().isoformat()
-                                }
-                                yield thinking_chunk_event
+                                # 清理内容
+                                clean_content = chunk_to_send.strip()
+                                clean_accumulated = think_buffer.strip()
+                                
+                                for tag in ['</think>', '<think>', '<tool_call>', '</tool_call>']:
+                                    clean_content = clean_content.replace(tag, '')
+                                    clean_accumulated = clean_accumulated.replace(tag, '')
+                                
+                                if clean_content:
+                                    thinking_chunk_event = {
+                                        "type": "thinking_chunk",
+                                        "content": clean_content,
+                                        "accumulated": clean_accumulated,
+                                        "is_streaming": True,  # 仍在流式传输
+                                        "is_complete": True,  # 这是最后一块
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    print(f"[DEBUG] Sending final thinking_chunk: accumulated_length={len(clean_accumulated)}")
+                                    yield thinking_chunk_event
                         else:
                             # 继续累积thinking内容
                             think_buffer += chunk
                             chunk_to_send = chunk
-                        
-                        # 发送thinking片段（如果还在think标签内）
-                        if in_think_tag and chunk_to_send:
-                            thinking_chunk_event = {
-                                "type": "thinking_chunk",
-                                "content": chunk_to_send,
-                                "accumulated": think_buffer.strip(),
-                                "is_streaming": True,  # 正在流式传输
-                                "is_complete": False,
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            yield thinking_chunk_event
+                            
+                            # 发送thinking片段
+                            if chunk_to_send.strip():
+                                # 清理内容
+                                clean_content = chunk_to_send.strip()
+                                clean_accumulated = think_buffer.strip()
+                                
+                                for tag in ['</think>', '<think>', '<tool_call>', '</tool_call>']:
+                                    clean_content = clean_content.replace(tag, '')
+                                    clean_accumulated = clean_accumulated.replace(tag, '')
+                                
+                                if clean_content:
+                                    thinking_chunk_event = {
+                                        "type": "thinking_chunk",
+                                        "content": clean_content,
+                                        "accumulated": clean_accumulated,
+                                        "is_streaming": True,  # 正在流式传输
+                                        "is_complete": False,
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield thinking_chunk_event
                 
                 content = accumulated_content
                 print(f"LLM response received (stream completed): {content[:200]}...")
@@ -353,22 +408,24 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     # 清理思考内容：移除可能残留的标签
                     clean_thinking = think_buffer.strip()
                     
-                    # 移除 </think> 标签及其之后的所有内容
-                    if '</think>' in clean_thinking:
-                        clean_thinking = clean_thinking.split('</think>')[0].strip()
+                    # 移除所有可能的标签
+                    for tag in ['</think>', '<think>', '<tool_call>', '</tool_call>', '<tool_response>', '</tool_response>']:
+                        clean_thinking = clean_thinking.replace(tag, '')
                     
-                    # 移除 <tool_call> 标签及其之后的所有内容
-                    if '<tool_call>' in clean_thinking:
-                        clean_thinking = clean_thinking.split('<tool_call>')[0].strip()
+                    # 移除标签后可能的多余空白
+                    clean_thinking = clean_thinking.strip()
                     
-                    thinking_complete_event = {
-                        "type": "thinking",
-                        "content": clean_thinking,
-                        "is_streaming": False,  # 明确标记流式结束，触发折叠
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    print(f"Yielding thinking complete event (for collapsing): {thinking_complete_event['content'][:100]}...")
-                    yield thinking_complete_event
+                    # 只有在有实际内容时才发送 thinking 事件
+                    if clean_thinking:
+                        thinking_complete_event = {
+                            "type": "thinking",
+                            "content": clean_thinking,
+                            "is_streaming": False,  # 明确标记流式结束，触发折叠
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        print(f"[DEBUG] Yielding thinking complete event: content_length={len(clean_thinking)}")
+                        print(f"[DEBUG] Content preview: {clean_thinking[:200]}...")
+                        yield thinking_complete_event
                 
                 # 清理tool_response标记
                 if '<tool_response>' in content:
@@ -467,35 +524,65 @@ class StreamingReactAgent(MultiTurnReactAgent):
                     # 输出工具结果
                     tool_result_event = {
                         "type": "tool_result",
-                        "content": f"工具执行结果:\n{result}",
+                        "content": f"检索到 {len(result.split('---')) if '---' in result else 1} 条相关文献",
                         "result": result,
                         "timestamp": datetime.now().isoformat()
                     }
                     print(f"Yielding tool_result event: {tool_result_event}")
                     yield tool_result_event
                     
-                    # 如果是检索工具，判断结果是否足够回答问题
+                    # 如果是检索工具，流式判断结果是否足够回答问题
                     if tool_name == "retrieval" and result and not result.startswith("[Retrieval] Error"):
-                        judgment_event = {
+                        judgment_start_event = {
                             "type": "retrieval_judgment",
                             "content": "正在评估检索内容是否足够回答问题...",
                             "timestamp": datetime.now().isoformat()
                         }
-                        print(f"Yielding retrieval_judgment event: {judgment_event}")
-                        yield judgment_event
+                        print(f"Yielding retrieval_judgment event: {judgment_start_event}")
+                        yield judgment_start_event
                         
                         try:
-                            # 判断检索内容是否足够
-                            judgment = self.answer_system.judge_retrieval_sufficiency(self.user_prompt, result)
+                            # 使用流式判断方法，实时发送判断文本
+                            judgment = None
+                            accumulated_judgment_text = ""
                             
-                            judgment_result_event = {
-                                "type": "judgment_result",
-                                "content": f"检索内容评估完成: {'可以回答' if judgment.get('can_answer') else '需要更多信息'}",
-                                "judgment": judgment,
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            print(f"Yielding judgment_result event: {judgment_result_event}")
-                            yield judgment_result_event
+                            for judgment_event in self.answer_system.judge_retrieval_sufficiency_stream(self.user_prompt, result):
+                                event_type = judgment_event.get("type")
+                                
+                                if event_type == "judgment_chunk":
+                                    # 流式发送判断文本片段
+                                    accumulated_judgment_text = judgment_event.get("accumulated", "")
+                                    chunk_event = {
+                                        "type": "judgment_streaming",
+                                        "content": accumulated_judgment_text,  # 累积的判断文本
+                                        "is_streaming": True,
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield chunk_event
+                                    
+                                elif event_type == "judgment_complete":
+                                    # 判断完成，获取最终结果
+                                    judgment = judgment_event.get("judgment", {})
+                                    print(f"Judgment complete: {judgment}")
+                                    
+                                    # 发送流式完成事件（停止光标闪烁）
+                                    if accumulated_judgment_text:
+                                        judgment_final_event = {
+                                            "type": "judgment_streaming",
+                                            "content": accumulated_judgment_text,
+                                            "is_streaming": False,  # 标记流式结束
+                                            "timestamp": datetime.now().isoformat()
+                                        }
+                                        yield judgment_final_event
+                                    
+                                elif event_type == "judgment_error":
+                                    # 判断出错，记录但继续
+                                    print(f"Judgment error: {judgment_event.get('content')}")
+                                    judgment = {"can_answer": True, "confidence": 0.5}  # 默认假设可以回答
+                            
+                            # 如果判断结果为空（出错），使用默认值
+                            if judgment is None:
+                                judgment = {"can_answer": True, "confidence": 0.5}
                             
                             # 如果检索内容足够，直接生成答案，不继续推理
                             if judgment.get('can_answer', False):
