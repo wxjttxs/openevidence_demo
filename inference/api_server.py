@@ -59,6 +59,9 @@ active_sessions = {}  # 跟踪活跃的会话
 global_citations = {}  # 全局存储所有 citations 数据（按 citation_id 索引）
 session_lock = threading.Lock()  # 仅用于保护active_sessions和global_citations字典
 
+# 会话存储：{session_id: {"created_at": datetime, "messages": [{"role": "user/assistant", "content": "..."}]}}
+chat_sessions = {}  # 存储所有会话的历史消息
+
 # 创建FastAPI应用
 app = FastAPI(
     title="Tongyi DeepResearch API",
@@ -165,6 +168,60 @@ async def health_check():
         "processing_count": MAX_CONCURRENT_REQUESTS - available_slots
     }
 
+@app.get("/api/sessions/new")
+async def create_new_chat_session():
+    """创建新的聊天会话"""
+    session_id = str(uuid.uuid4())
+    created_at = datetime.now()
+    
+    with session_lock:
+        chat_sessions[session_id] = {
+            "created_at": created_at.isoformat(),
+            "messages": []
+        }
+    
+    logger.info(f"📝 创建新会话: {session_id[:8]}...")
+    
+    return {
+        "session_id": session_id,
+        "created_at": created_at.isoformat()
+    }
+
+@app.get("/api/sessions")
+async def list_chat_sessions():
+    """获取所有聊天会话列表（包含历史消息统计）"""
+    with session_lock:
+        sessions = [
+            {
+                "session_id": sid,
+                "created_at": data["created_at"],
+                "message_count": len(data["messages"])
+            }
+            for sid, data in chat_sessions.items()
+        ]
+        # 按创建时间倒序排列（最新的在前）
+        sessions.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    return {
+        "sessions": sessions,
+        "total": len(sessions)
+    }
+
+@app.get("/api/sessions/{session_id}")
+async def get_chat_session(session_id: str):
+    """获取指定聊天会话的详细信息（包含完整历史消息）"""
+    with session_lock:
+        if session_id not in chat_sessions:
+            raise HTTPException(status_code=404, detail="会话不存在")
+        
+        session_data = chat_sessions[session_id]
+    
+    return {
+        "session_id": session_id,
+        "created_at": session_data["created_at"],
+        "messages": session_data["messages"]
+    }
+
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """流式聊天接口"""
@@ -233,11 +290,25 @@ async def chat_stream(request: ChatRequest):
                 }
                 yield f"data: {json.dumps(session_start_data, ensure_ascii=False)}\n\n"
                 
-                # 执行流式处理（传入 cancelled 标记）
+                # 加载历史消息
+                history_messages = []
+                with session_lock:
+                    if session_id in chat_sessions:
+                        history_messages = chat_sessions[session_id].get("messages", [])
+                        logger.info(f"📚 [Session {session_id[:8]}] 加载了 {len(history_messages)} 条历史消息")
+                    else:
+                        # 如果会话不存在，创建一个新的
+                        chat_sessions[session_id] = {
+                            "created_at": datetime.now().isoformat(),
+                            "messages": []
+                        }
+                
+                # 执行流式处理（传入 cancelled 标记和历史消息）
                 has_completed = False  # 标记是否已发送 completed 事件
+                final_answer_content = ""  # 用于保存最终答案（不含参考文献）
                 
                 event_count = 0
-                for event in agent.stream_run(request.question, cancelled=cancelled):
+                for event in agent.stream_run(request.question, cancelled=cancelled, history_messages=history_messages):
                     event_count += 1
                     
                     # 每个事件前检查客户端是否断开
@@ -314,10 +385,20 @@ async def chat_stream(request: ChatRequest):
                     if event.get("type") == "completed":
                         has_completed = True
                     
+                    # 捕获最终答案内容（用于保存历史）
+                    event_type = response_data.get('type')
+                    if event_type in ['final_answer', 'answer_complete']:
+                        if 'answer_data' in response_data and isinstance(response_data['answer_data'], dict):
+                            # 提取答案正文（不含参考文献）
+                            answer_data = response_data['answer_data']
+                            final_answer_content = answer_data.get('answer', '')
+                        elif 'content' in response_data:
+                            # 如果没有answer_data，使用content
+                            final_answer_content = response_data.get('content', '')
+                    
                     # 发送数据（添加异常处理）
                     try:
                         # 在序列化前记录事件类型
-                        event_type = response_data.get('type')
                         if event_type == 'final_answer':
                             logger.info(f"🔍 [Session {session_id[:8]}] 准备序列化 final_answer 事件...")
                             logger.info(f"   - answer_data存在: {'answer_data' in response_data}")
@@ -365,6 +446,29 @@ async def chat_stream(request: ChatRequest):
                         "timestamp": datetime.now().isoformat()
                     }
                     yield f"data: {json.dumps(completed_data, ensure_ascii=False)}\n\n"
+                
+                # 保存对话历史（用户问题和最终答案）
+                if final_answer_content.strip():
+                    with session_lock:
+                        if session_id not in chat_sessions:
+                            chat_sessions[session_id] = {
+                                "created_at": datetime.now().isoformat(),
+                                "messages": []
+                            }
+                        
+                        # 添加用户问题
+                        chat_sessions[session_id]["messages"].append({
+                            "role": "user",
+                            "content": request.question
+                        })
+                        
+                        # 添加助手回答（只保存答案正文，不含参考文献）
+                        chat_sessions[session_id]["messages"].append({
+                            "role": "assistant",
+                            "content": final_answer_content.strip()
+                        })
+                        
+                        logger.info(f"💾 [Session {session_id[:8]}] 已保存对话历史（用户问题 + 最终答案）")
                 
                 logger.info(f"✅ [Session {session_id[:8]}] 处理完成，释放槽位")
                 
@@ -491,9 +595,9 @@ async def chat(request: ChatRequest):
         if acquired:
             processing_semaphore.release()
 
-@app.get("/sessions")
-async def get_sessions():
-    """获取活跃会话列表"""
+@app.get("/api/sessions/active")
+async def get_active_sessions():
+    """获取正在处理中的活跃会话列表（用于监控/调试）"""
     return {
         "active_sessions": active_sessions,
         "total": len(active_sessions),

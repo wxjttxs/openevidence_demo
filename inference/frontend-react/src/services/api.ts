@@ -14,10 +14,47 @@ export async function checkAPIHealth(): Promise<boolean> {
   }
 }
 
+export async function createNewSession(): Promise<{ session_id: string; created_at: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/sessions/new`, {
+      method: 'GET',
+    })
+    if (!response.ok) {
+      throw new Error(`创建会话失败: ${response.statusText}`)
+    }
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Create session failed:', error)
+    throw error
+  }
+}
+
+export async function getSession(sessionId: string): Promise<{
+  session_id: string
+  created_at: string
+  messages: Array<{ role: string; content: string }>
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+      method: 'GET',
+    })
+    if (!response.ok) {
+      throw new Error(`获取会话失败: ${response.statusText}`)
+    }
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Get session failed:', error)
+    throw error
+  }
+}
+
 export async function sendStreamingChat(
   question: string,
   onMessage: (message: Message) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
+  sessionId?: string | null
 ): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
@@ -31,6 +68,7 @@ export async function sendStreamingChat(
         top_p: 0.95,
         presence_penalty: 1.1,
         max_tokens: 10000,
+        session_id: sessionId || undefined,
       }),
     })
 

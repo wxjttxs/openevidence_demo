@@ -4,8 +4,9 @@ import Header from './components/Header'
 import ChatContainer from './components/ChatContainer'
 import MessageInput from './components/MessageInput'
 import CitationPanel from './components/CitationPanel'
+import SessionSidebar from './components/SessionSidebar'
 import { Message, ConnectionStatus } from './types'
-import { checkAPIHealth, sendStreamingChat } from './services/api'
+import { checkAPIHealth, sendStreamingChat, createNewSession, getSession } from './services/api'
 
 interface Citation {
   id: number | string
@@ -18,15 +19,7 @@ function App() {
     {
       id: 'welcome',
       type: 'system',
-      content: `欢迎使用 openEvidence 深度研究系统！
-
-我可以帮助您进行深度研究，包括：
-
-🔍 专业的医疗知识库搜索
-📊 数据分析与可视化
-🧠 智能推理与决策支持
-
-请提出您的问题，我将为您进行深度研究并提供详细答案。`,
+      content: '我是您的循证医学助手，请说出您的问题：',
       timestamp: new Date().toISOString(),
     },
   ])
@@ -34,10 +27,33 @@ function App() {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected')
   const [statusText, setStatusText] = useState('正在连接...')
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
 
-  // 检查API状态
+  // 检查API状态并创建初始会话
   useEffect(() => {
-    const checkHealth = async () => {
+    const init = async () => {
+      const healthy = await checkAPIHealth()
+      if (healthy) {
+        setStatus('connected')
+        setStatusText('API连接正常')
+        
+        // 自动创建初始会话
+        if (!currentSessionId) {
+          try {
+            const session = await createNewSession()
+            setCurrentSessionId(session.session_id)
+          } catch (error) {
+            console.error('创建初始会话失败:', error)
+          }
+        }
+      } else {
+        setStatus('error')
+        setStatusText('无法连接到API服务')
+      }
+    }
+    
+    init()
+    const interval = setInterval(async () => {
       const healthy = await checkAPIHealth()
       if (healthy) {
         setStatus('connected')
@@ -46,12 +62,107 @@ function App() {
         setStatus('error')
         setStatusText('无法连接到API服务')
       }
-    }
-    
-    checkHealth()
-    const interval = setInterval(checkHealth, 30000) // 每30秒检查一次
+    }, 30000) // 每30秒检查一次
     
     return () => clearInterval(interval)
+  }, [currentSessionId])
+
+  // 创建新会话
+  const handleNewSession = useCallback(async () => {
+    try {
+      // 检查当前会话是否有实际问答（排除系统消息）
+      const hasActualMessages = messages.some(msg => 
+        msg.type === 'user' || msg.type === 'assistant' || msg.type === 'final-answer'
+      )
+      
+      if (!hasActualMessages && currentSessionId) {
+        // 如果当前会话没有实际问答，复用当前session_id，只清空消息
+        setMessages([
+          {
+            id: 'welcome',
+            type: 'system',
+            content: '我是您的循证医学助手，请说出您的问题：',
+            timestamp: new Date().toISOString(),
+          },
+        ])
+        return
+      }
+      
+      // 如果有实际问答，创建新会话
+      const session = await createNewSession()
+      setCurrentSessionId(session.session_id)
+      setMessages([
+        {
+          id: 'welcome',
+          type: 'system',
+          content: '我是您的循证医学助手，请说出您的问题：',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    } catch (error) {
+      console.error('创建新会话失败:', error)
+    }
+  }, [messages, currentSessionId])
+
+  // 选择会话
+  const handleSessionSelect = useCallback(async (sessionId: string) => {
+    try {
+      setCurrentSessionId(sessionId)
+      
+      // 加载会话的历史消息
+      const sessionData = await getSession(sessionId)
+      
+      // 将历史消息转换为前端的 Message 格式
+      const historyMessages: Message[] = []
+      
+      // 添加系统欢迎消息
+      historyMessages.push({
+        id: 'welcome',
+        type: 'system',
+        content: '我是您的循证医学助手，请说出您的问题：',
+        timestamp: sessionData.created_at,
+      })
+      
+      // 转换历史消息
+      if (sessionData.messages && sessionData.messages.length > 0) {
+        const baseTime = new Date(sessionData.created_at).getTime()
+        sessionData.messages.forEach((msg, index) => {
+          // 为每条消息分配递增的时间戳（确保顺序正确）
+          const messageTime = new Date(baseTime + index * 1000).toISOString()
+          
+          if (msg.role === 'user') {
+            historyMessages.push({
+              id: `user-${sessionId}-${index}`,
+              type: 'user',
+              content: msg.content,
+              timestamp: messageTime,
+            })
+          } else if (msg.role === 'assistant') {
+            historyMessages.push({
+              id: `assistant-${sessionId}-${index}`,
+              type: 'final-answer',
+              content: msg.content,
+              eventType: 'final-answer',
+              isStreaming: false,
+              timestamp: messageTime,
+            })
+          }
+        })
+      }
+      
+      setMessages(historyMessages)
+    } catch (error) {
+      console.error('加载会话历史失败:', error)
+      // 如果加载失败，至少切换到该会话并显示欢迎消息
+      setMessages([
+        {
+          id: 'welcome',
+          type: 'system',
+          content: '我是您的循证医学助手，请说出您的问题：',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+    }
   }, [])
 
   const handleSendMessage = useCallback(async (content: string) => {
@@ -208,7 +319,8 @@ function App() {
           } else {
             setStatusText('处理失败')
           }
-        }
+        },
+        currentSessionId
       )
 
       // 流式传输完成
@@ -253,11 +365,18 @@ function App() {
 
       {/* 主内容区域 - 使用 flex 布局实现并列显示 */}
       <div className="relative z-10 flex flex-1 overflow-hidden">
+        {/* 左侧边栏 - 会话管理 */}
+        <SessionSidebar
+          currentSessionId={currentSessionId}
+          onSessionSelect={handleSessionSelect}
+          onNewSession={handleNewSession}
+        />
+        
         {/* 左侧主内容 - 根据是否有 citation 动态调整宽度 */}
         <motion.div 
-          className="flex flex-col h-full bg-dark-900/50"
-          animate={{ 
-            width: selectedCitation ? '60%' : '100%' 
+          className="flex flex-col h-full bg-dark-900/50 flex-1"
+          animate={{
+            width: selectedCitation ? 'calc(60% - 16rem)' : 'calc(100% - 16rem)' 
           }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         >

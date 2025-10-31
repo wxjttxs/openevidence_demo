@@ -227,14 +227,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
         else:
             return f"Error: Tool {tool_name} not found"
         
-    def stream_run(self, question: str, cancelled: dict = None) -> Generator[Dict, None, None]:
+    def stream_run(self, question: str, cancelled: dict = None, history_messages: list = None) -> Generator[Dict, None, None]:
         """
         流式运行推理过程，实时输出各个阶段的信息
         
         Args:
             question: 用户问题
-            planning_port: vLLM服务器端口
             cancelled: 取消标记字典 {"value": False}，当设置为 True 时中断处理
+            history_messages: 历史消息列表 [{"role": "user/assistant", "content": "..."}]
             
         Yields:
             Dict: 包含当前阶段信息的字典
@@ -242,19 +242,33 @@ class StreamingReactAgent(MultiTurnReactAgent):
         # 初始化 cancelled 标记
         if cancelled is None:
             cancelled = {"value": False}
+        if history_messages is None:
+            history_messages = []
+        
         logger.info(f"=== StreamingReactAgent.stream_run START ===")
         logger.debug(f"Question: {question}")
         logger.debug(f"LLM Model: {self.llm_model}")
+        logger.debug(f"History messages: {len(history_messages)} messages")
         
         start_time = time.time()
         self.user_prompt = question
         
-        # 初始化
+        # 初始化消息列表（包含历史消息）
         system_prompt = SYSTEM_PROMPT + str(today_date())
         messages = [
-            {"role": "system", "content": system_prompt}, 
-            {"role": "user", "content": question}
+            {"role": "system", "content": system_prompt}
         ]
+        
+        # 添加历史消息（排除system消息）
+        for msg in history_messages:
+            if msg.get("role") != "system":
+                messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")
+                })
+        
+        # 添加当前用户问题
+        messages.append({"role": "user", "content": question})
         
         init_event = {
             "type": "init",
