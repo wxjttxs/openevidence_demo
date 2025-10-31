@@ -311,7 +311,7 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       }
 
     case 'judgment_streaming':
-      // 流式判断文本，使用固定ID更新同一个卡片
+      // 流式判断文本（增量chunk），使用固定ID更新同一个卡片
       return {
         ...baseMessage,
         id: 'judgment-streaming',
@@ -319,6 +319,7 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
         content,
         eventType: 'judgment-streaming',
         isStreaming: event.is_streaming || false,
+        accumulated: (event as any).accumulated, // 传递累积内容（如果后端提供）
       }
 
     case 'judgment_result':
@@ -359,14 +360,15 @@ function handleStreamEvent(event: StreamEvent, currentMessageId: string | null):
       }
 
     case 'final_answer_chunk':
-      // 流式最终答案片段 - 直接使用final-answer样式渲染
+      // 流式最终答案片段（增量chunk）- 使用final-answer样式渲染
       return {
         ...baseMessage,
         id: currentMessageId || 'final-answer', // 使用固定ID
         type: 'final-answer',
-        content: content, // 直接使用content（已是累积内容）
+        content: content, // 增量chunk内容
         eventType: 'final-answer',
         isStreaming: is_streaming !== false, // 标记为流式中
+        accumulated: (event as any).accumulated, // 传递累积内容（如果后端提供）
       }
 
     case 'answer_streaming':

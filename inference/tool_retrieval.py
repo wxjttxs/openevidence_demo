@@ -166,5 +166,4 @@ class Retrieval(BaseTool):
                 f"Content: {content}\n"
                 f"\n---\n"
             )
-        print("检索结果：", ''.join(result_parts).strip())
         return ''.join(result_parts).strip()

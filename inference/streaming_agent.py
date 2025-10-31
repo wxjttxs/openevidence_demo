@@ -524,14 +524,16 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                 event_type = judgment_event.get("type")
                                 
                                 if event_type == "judgment_chunk":
-                                    # 流式发送判断文本片段
+                                    # 流式发送判断文本片段（增量chunk）
+                                    chunk_text = judgment_event.get("content", "")  # 增量chunk内容
                                     accumulated_judgment_text = judgment_event.get("accumulated", "")
                                     chunk_event = {
                                         "type": "judgment_streaming",
-                                        "content": accumulated_judgment_text,  # 累积的判断文本
+                                        "content": chunk_text,  # 发送增量chunk，而不是累积内容
+                                        "accumulated": accumulated_judgment_text,  # 可选：也提供累积内容给前端
                                         "is_streaming": True,
-                                "timestamp": datetime.now().isoformat()
-                            }
+                                        "timestamp": datetime.now().isoformat()
+                                    }
                                     yield chunk_event
                                     
                                 elif event_type == "judgment_complete":
@@ -587,14 +589,15 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                         event_type = stream_event.get("type")
                                         
                                         if event_type == "answer_chunk":
-                                            # 逐块发送最终答案内容（仅答案主体，不含参考文献）
-                                            chunk_content = stream_event.get("content", "")
+                                            # 逐块发送增量chunk（仅答案主体，不含参考文献）
+                                            chunk_content = stream_event.get("content", "")  # 增量chunk内容
                                             accumulated_answer += chunk_content
                                             
                                             # 使用final_answer_chunk类型，前端会用最终答案样式渲染
                                             chunk_event = {
                                                 "type": "final_answer_chunk",
-                                                "content": accumulated_answer,  # 发送累积的答案内容（不含参考文献）
+                                                "content": chunk_content,  # 发送增量chunk，而不是累积内容
+                                                "accumulated": accumulated_answer,  # 可选：也提供累积内容给前端
                                                 "is_streaming": True,  # 标记为流式中
                                                 "timestamp": datetime.now().isoformat()
                                             }

@@ -105,7 +105,27 @@ function App() {
             if (existingIndex !== -1) {
               // 找到了，更新现有消息
               const updated = [...prev]
-              updated[existingIndex] = newMessage
+              const existingMessage = updated[existingIndex]
+              
+              // 对于流式消息（增量chunk），需要累积content
+              const isStreamingChunk = newMessage.isStreaming && (
+                newMessage.eventType === 'judgment-streaming' || 
+                newMessage.eventType === 'final-answer'
+              )
+              
+              if (isStreamingChunk) {
+                // 累积流式内容：如果后端提供了accumulated字段，使用它；否则追加
+                const accumulatedContent = (newMessage as any).accumulated || 
+                  (existingMessage.content + newMessage.content)
+                
+                updated[existingIndex] = {
+                  ...newMessage,
+                  content: accumulatedContent
+                }
+              } else {
+                // 非流式消息，直接替换
+                updated[existingIndex] = newMessage
+              }
               
               // 调试：tool-result 更新
               if (newMessage.type === 'tool-result') {
