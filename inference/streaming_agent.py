@@ -278,10 +278,14 @@ class StreamingReactAgent(MultiTurnReactAgent):
         logger.debug(f"Yielding init event: {init_event}")
         yield init_event
         
+        # 限制检索循环最多3次
+        MAX_RETRIEVAL_ROUNDS = 3
         num_llm_calls_available = MAX_LLM_CALL_PER_RUN
         round_num = 0
+        retrieval_round_num = 0  # 检索轮次计数
+        previous_search_keywords = []  # 记录之前使用的检索关键词
         
-        logger.debug(f"Starting main loop, max calls: {MAX_LLM_CALL_PER_RUN}")
+        logger.debug(f"Starting main loop, max retrieval rounds: {MAX_RETRIEVAL_ROUNDS}")
         
         while num_llm_calls_available > 0:
             # 检查客户端是否断开
@@ -334,25 +338,76 @@ class StreamingReactAgent(MultiTurnReactAgent):
             logger.debug(f"Yielding round_start event: {round_start_event}")
             yield round_start_event
             
+            # 检查检索轮次限制（在调用检索工具前检查）
+            if retrieval_round_num >= MAX_RETRIEVAL_ROUNDS:
+                # 已达到最大检索轮次，返回抱歉消息
+                logger.warning(f"⚠️ 已达到最大检索轮次 {MAX_RETRIEVAL_ROUNDS}，无法找到答案")
+                
+                no_answer_event = {
+                    "type": "final_answer",
+                    "content": "抱歉，经过多轮检索后，我无法基于现有知识库找到足够的信息来回答您的问题。建议您：\n\n1. 尝试使用更具体或不同的关键词重新提问\n2. 将问题拆分为更小的子问题\n3. 如果可能，提供更多相关的背景信息",
+                    "timestamp": datetime.now().isoformat(),
+                    "is_streaming": False
+                }
+                logger.debug(f"Yielding no_answer event: {no_answer_event}")
+                yield no_answer_event
+                
+                completed_event = {
+                    "type": "completed",
+                    "content": f"已达到最大检索轮次（{MAX_RETRIEVAL_ROUNDS}次），未能找到答案",
+                    "timestamp": datetime.now().isoformat()
+                }
+                logger.debug(f"Yielding completed event (max rounds): {completed_event}")
+                yield completed_event
+                logger.info(f"=== StreamingReactAgent.stream_run MAX_ROUNDS_REACHED ===")
+                return
+            
             # 调用LLM
             thinking_start_time = time.time()
+            
+            # 构建思考提示，强调使用不同的检索关键词
+            thinking_hint = ""
+            if previous_search_keywords:
+                keywords_list = "、".join([f'"{kw}"' for kw in previous_search_keywords])
+                thinking_hint = f"\n\n【重要提示】这是第 {retrieval_round_num + 1} 轮检索。之前已使用过以下检索关键词：{keywords_list}。\n请务必使用**不同的检索关键词**或**不同的检索角度**，确保本次检索能获得不同的结果。避免重复使用相同的关键词。"
+            
+            thinking_content = "正在思考..." + thinking_hint
             thinking_start_event = {
                 "type": "thinking_start",
-                "content": "正在思考...",
+                "content": thinking_content,
                 "timestamp": datetime.now().isoformat()
             }
-            logger.debug(f"Yielding thinking_start event: {thinking_start_event}")
+            logger.debug(f"Yielding thinking_start event (round {retrieval_round_num + 1}/{MAX_RETRIEVAL_ROUNDS}): {thinking_start_event}")
             yield thinking_start_event
             
             try:
-                logger.debug(f"Calling LLM server (stream) - Model: {self.llm_model}")
+                logger.debug(f"Calling LLM server (stream) - Model: {self.llm_model}, Retrieval Round: {retrieval_round_num + 1}/{MAX_RETRIEVAL_ROUNDS}")
+                
+                # 如果之前有检索失败，在system message中添加提示
+                current_messages = messages.copy()
+                if previous_search_keywords and retrieval_round_num > 0:
+                    # 添加提示消息，强调使用不同的关键词
+                    keyword_hint = f"注意：这是第 {retrieval_round_num + 1} 轮检索。之前的检索未能找到足够的信息。已使用过的检索关键词包括：{', '.join(previous_search_keywords)}。请务必使用**完全不同的检索关键词**或**不同的检索角度**，确保本次检索能获得不同的结果。"
+                    # 将提示插入到user消息中
+                    if len(current_messages) > 0:
+                        # 在最后一条user消息后添加提示
+                        last_user_idx = -1
+                        for i in range(len(current_messages) - 1, -1, -1):
+                            if current_messages[i]["role"] == "user":
+                                last_user_idx = i
+                                break
+                        if last_user_idx >= 0:
+                            current_messages[last_user_idx]["content"] += "\n\n" + keyword_hint
+                        else:
+                            # 如果没有user消息，添加一条
+                            current_messages.append({"role": "user", "content": keyword_hint})
                 
                 # 使用新的流式API，支持阿里云thinking模式
                 reasoning_content = ""  # 完整思考过程
                 answer_content = ""  # 完整回答内容
                 is_answering = False  # 是否进入回答阶段
                 
-                for chunk_data in self.call_server_stream(messages, enable_thinking=True):
+                for chunk_data in self.call_server_stream(current_messages, enable_thinking=True):
                     # 在流式接收过程中检查客户端是否断开
                     if cancelled["value"]:
                         logger.warning(f"⚠️ 客户端断开，停止LLM流式接收")
@@ -487,6 +542,16 @@ class StreamingReactAgent(MultiTurnReactAgent):
                             
                             retrieval_start_time = time.time()
                             logger.debug(f"Calling tool {tool_name} with args {tool_args}")
+                            
+                            # 如果是检索工具，记录检索关键词
+                            search_keyword = None
+                            if tool_name == "retrieval":
+                                retrieval_round_num += 1  # 增加检索轮次计数
+                                search_keyword = tool_args.get("question", "")
+                                if search_keyword:
+                                    previous_search_keywords.append(search_keyword)
+                                    logger.info(f"🔍 第 {retrieval_round_num} 轮检索，关键词: {search_keyword}")
+                            
                             result = self.custom_call_tool(tool_name, tool_args)
                             retrieval_elapsed = time.time() - retrieval_start_time
                             logger.info(f"⏱️  【时间统计】检索工具执行完成，耗时: {retrieval_elapsed:.2f} 秒")
@@ -698,14 +763,44 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                 yield completed_event
                                 return
                             else:
-                                # 检索内容不足，继续推理流程
+                                # 检索内容不足，进入下一轮循环（思考→检索→判断）
+                                # 检查是否已达到最大检索轮次
+                                if retrieval_round_num >= MAX_RETRIEVAL_ROUNDS:
+                                    # 已达到最大检索轮次，返回抱歉消息
+                                    logger.warning(f"⚠️ 第 {retrieval_round_num} 轮检索后仍无法回答问题，已达到最大检索轮次 {MAX_RETRIEVAL_ROUNDS}")
+                                    
+                                    no_answer_event = {
+                                        "type": "final_answer",
+                                        "content": "抱歉，经过多轮检索后，我无法基于现有知识库找到足够的信息来回答您的问题。建议您：\n\n1. 尝试使用更具体或不同的关键词重新提问\n2. 将问题拆分为更小的子问题\n3. 如果可能，提供更多相关的背景信息",
+                                        "timestamp": datetime.now().isoformat(),
+                                        "is_streaming": False
+                                    }
+                                    logger.debug(f"Yielding no_answer event: {no_answer_event}")
+                                    yield no_answer_event
+                                    
+                                    completed_event = {
+                                        "type": "completed",
+                                        "content": f"已达到最大检索轮次（{MAX_RETRIEVAL_ROUNDS}次），未能找到答案",
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    logger.debug(f"Yielding completed event (max rounds): {completed_event}")
+                                    yield completed_event
+                                    logger.info(f"=== StreamingReactAgent.stream_run MAX_ROUNDS_REACHED ===")
+                                    return
+                                
                                 continue_reasoning_event = {
                                     "type": "continue_reasoning",
-                                    "content": f"检索内容不足以回答问题（置信度: {judgment.get('confidence', 0):.2f}），继续推理流程...",
+                                    "content": f"检索内容不足以回答问题（置信度: {judgment.get('confidence', 0):.2f}），继续下一轮检索（第 {retrieval_round_num + 1}/{MAX_RETRIEVAL_ROUNDS} 轮）...",
                                     "timestamp": datetime.now().isoformat()
                                 }
                                 logger.debug(f"Yielding continue_reasoning event: {continue_reasoning_event}")
                                 yield continue_reasoning_event
+                                
+                                # 判断为不能回答时，不添加工具结果到消息，直接进入下一轮循环
+                                # 这样下一轮会重新思考检索策略，使用不同的关键词
+                                logger.info(f"🔄 检索结果不足以回答问题（置信度: {judgment.get('confidence', 0):.2f}），跳过添加工具结果，进入下一轮循环（思考→检索→判断）")
+                                logger.info(f"📝 已使用过的检索关键词: {previous_search_keywords}")
+                                continue  # 直接跳到下一轮循环
                                 
                         except Exception as e:
                             judgment_error_event = {
@@ -715,7 +810,12 @@ class StreamingReactAgent(MultiTurnReactAgent):
                             }
                             logger.debug(f"Yielding judgment_error event: {judgment_error_event}")
                             yield judgment_error_event
+                            # 评估出错时，也跳过添加工具结果，进入下一轮
+                            logger.info(f"🔄 检索结果评估出错，跳过添加工具结果，进入下一轮循环")
+                            continue  # 直接跳到下一轮循环
                     
+                    # 只有在非检索工具，或者检索工具但判断结果未明确为"不能回答"时，才添加工具结果到消息
+                    # 对于检索工具且已判断为"不能回答"的情况，已经在上面continue了
                     result = "<tool_response>\n" + result + "\n</tool_response>"
                     messages.append({"role": "user", "content": result})
                     logger.debug(f"Added tool result to conversation")

@@ -489,7 +489,7 @@ async def chat_stream(request: ChatRequest):
                     error_data = {
                         "type": "error",
                         "content": f"流式处理出错: {str(e)}",
-                                    "session_id": session_id,
+                                        "session_id": session_id,
                         "timestamp": datetime.now().isoformat()
                     }
                     yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
