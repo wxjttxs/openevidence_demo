@@ -555,18 +555,22 @@ async def chat_stream(request: ChatRequest):
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    """非流式聊天接口（用于测试）"""
+    """阻塞式聊天接口 - 等待处理完成，返回最终答案"""
     if agent_config_template is None:
         raise HTTPException(status_code=500, detail="推理代理配置未初始化")
     
     session_id = request.session_id or str(uuid.uuid4())
     
     acquired = False
+    agent = None
     try:
-        # 获取信号量
+        # 获取信号量（阻塞等待）
+        logger.info(f"⏳ [Session {session_id[:8]}] 阻塞等待获取处理槽位...")
         acquired = processing_semaphore.acquire(timeout=300)
         if not acquired:
-            raise HTTPException(status_code=503, detail="服务器繁忙，请稍后重试")
+            raise HTTPException(status_code=503, detail="服务器繁忙，请求超时，请稍后重试")
+        
+        logger.info(f"🚀 [Session {session_id[:8]}] 获取槽位成功，开始阻塞处理问题: {request.question[:50]}...")
         
         # 为这个请求创建独立的agent实例
         agent = create_agent_instance(
@@ -576,24 +580,162 @@ async def chat(request: ChatRequest):
             max_tokens=request.max_tokens
         )
         
-        # 收集所有事件
-        events = []
-        for event in agent.stream_run(request.question):
-            events.append(event)
+        # 加载历史消息
+        history_messages = []
+        with session_lock:
+            if session_id in chat_sessions:
+                history_messages = chat_sessions[session_id].get("messages", [])
+                logger.info(f"📚 [Session {session_id[:8]}] 加载了 {len(history_messages)} 条历史消息")
+            else:
+                # 如果会话不存在，创建一个新的
+                chat_sessions[session_id] = {
+                    "created_at": datetime.now().isoformat(),
+                    "messages": []
+                }
         
-        return {
-            "session_id": session_id,
-            "question": request.question,
-            "events": events,
-            "total_events": len(events),
-            "timestamp": datetime.now().isoformat()
+        # 记录活跃会话
+        with session_lock:
+            active_sessions[session_id] = {
+                "question": request.question,
+                "start_time": datetime.now().isoformat(),
+                "status": "processing"
+            }
+        
+        # 阻塞等待：收集所有事件直到完成
+        final_answer_content = ""
+        accumulated_answer = ""  # 用于累积流式答案片段
+        final_answer_data = None
+        is_completed = False
+        error_message = None
+        events_summary = {
+            "total_events": 0,
+            "rounds": 0,
+            "tool_calls": 0,
+            "retrieval_rounds": 0
         }
         
+        cancelled = {"value": False}  # 非流式接口不需要取消功能，但为了兼容性保留
+        
+        # 阻塞式处理：等待所有事件处理完成
+        for event in agent.stream_run(request.question, cancelled=cancelled, history_messages=history_messages):
+            events_summary["total_events"] += 1
+            event_type = event.get("type", "")
+            
+            # 统计信息
+            if event_type == "round_start":
+                events_summary["rounds"] += 1
+            elif event_type in ["tool_execution", "python_execution"]:
+                events_summary["tool_calls"] += 1
+            elif event_type == "tool_result" and event.get("tool_name") == "retrieval":
+                events_summary["retrieval_rounds"] += 1
+            
+            # 捕获最终答案（处理多种答案事件类型）
+            if event_type == "final_answer":
+                final_answer_content = event.get("content", "")
+            elif event_type == "final_answer_chunk":
+                # 流式答案片段，累积内容
+                chunk_content = event.get("content", "")
+                accumulated_answer += chunk_content
+                # 如果事件中有累积内容，使用它
+                if "accumulated" in event:
+                    accumulated_answer = event.get("accumulated", accumulated_answer)
+            elif event_type == "answer_complete":
+                # 这是检索后生成的完整答案
+                # 优先使用累积的答案，如果没有则使用content
+                final_answer_content = accumulated_answer.strip() if accumulated_answer.strip() else event.get("content", "")
+                if "answer_data" in event:
+                    final_answer_data = event.get("answer_data")
+                    # 如果answer_data中有answer字段，优先使用它
+                    if isinstance(final_answer_data, dict) and "answer" in final_answer_data:
+                        final_answer_content = final_answer_data.get("answer", final_answer_content)
+            
+            # 检查是否完成
+            if event_type == "completed":
+                is_completed = True
+                # 如果已完成但还没有最终答案，使用累积的答案
+                if not final_answer_content.strip() and accumulated_answer.strip():
+                    final_answer_content = accumulated_answer.strip()
+            elif event_type == "error":
+                error_message = event.get("content", "未知错误")
+        
+        # 更新会话状态
+        with session_lock:
+            if session_id in active_sessions:
+                active_sessions[session_id]["status"] = "completed" if is_completed else "finished"
+                active_sessions[session_id]["end_time"] = datetime.now().isoformat()
+        
+        # 保存对话历史（用户问题和最终答案）
+        if final_answer_content.strip():
+            with session_lock:
+                if session_id not in chat_sessions:
+                    chat_sessions[session_id] = {
+                        "created_at": datetime.now().isoformat(),
+                        "messages": []
+                    }
+                
+                # 添加用户问题
+                chat_sessions[session_id]["messages"].append({
+                    "role": "user",
+                    "content": request.question
+                })
+                
+                # 添加助手回答（只保存答案正文，不含参考文献）
+                chat_sessions[session_id]["messages"].append({
+                    "role": "assistant",
+                    "content": final_answer_content.strip()
+                })
+                
+                logger.info(f"💾 [Session {session_id[:8]}] 已保存对话历史（用户问题 + 最终答案）")
+        
+        # 如果处理出错
+        if error_message:
+            logger.error(f"❌ [Session {session_id[:8]}] 处理出错: {error_message}")
+            raise HTTPException(status_code=500, detail=f"处理请求时出错: {error_message}")
+        
+        # 如果没有找到答案
+        if not final_answer_content.strip():
+            logger.warning(f"⚠️ [Session {session_id[:8]}] 未找到最终答案")
+            final_answer_content = "抱歉，未能生成最终答案。"
+        
+        # 构建响应（阻塞模式：只返回最终结果）
+        response = {
+            "session_id": session_id,
+            "question": request.question,
+            "answer": final_answer_content.strip(),
+            "timestamp": datetime.now().isoformat(),
+            "status": "completed" if is_completed else "finished",
+            "events_summary": events_summary
+        }
+        
+        # 如果有答案数据（包含citations），也包含在响应中
+        if final_answer_data:
+            response["answer_data"] = final_answer_data
+        
+        logger.info(f"✅ [Session {session_id[:8]}] 阻塞处理完成，返回最终答案")
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"❌ [Session {session_id[:8]}] 处理请求时出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"处理请求时出错: {str(e)}")
     finally:
+        # 清理agent实例
+        if agent is not None:
+            try:
+                del agent
+            except:
+                pass
+        
+        # 释放信号量
         if acquired:
-            processing_semaphore.release()
+            try:
+                processing_semaphore.release()
+                logger.info(f"🔓 [Session {session_id[:8]}] 槽位已释放")
+            except:
+                pass
 
 @app.get("/api/sessions/active")
 async def get_active_sessions():

@@ -6,9 +6,11 @@ import asyncio
 import logging
 from typing import Dict, Iterator, List, Optional, Generator
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from react_agent import MultiTurnReactAgent, TOOL_MAP, MAX_LLM_CALL_PER_RUN, today_date
 from prompt import SYSTEM_PROMPT
 from answer_system import AnswerJudgmentSystem
+from department_classifier import classify_question_and_get_dataset_ids
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -473,7 +475,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                 messages.append({"role": "assistant", "content": content.strip()})
                 logger.debug(f"Added assistant message to conversation")
                 
-                # 检查工具调用
+                # 检查工具调用（支持多个连续的tool_call）
                 if '<tool_call>' in content and '</tool_call>' in content:
                     # 在执行工具调用前检查客户端是否断开
                     if cancelled["value"]:
@@ -494,97 +496,296 @@ class StreamingReactAgent(MultiTurnReactAgent):
                         yield completed_event
                         return
                     
-                    logger.debug(f"Found tool call in response")
-                    tool_call_raw = content.split('<tool_call>')[1].split('</tool_call>')[0]
+                    # 提取所有tool_call（支持多个连续的tool_call）
+                    import re
+                    tool_call_pattern = r'<tool_call>(.*?)</tool_call>'
+                    tool_calls_raw = re.findall(tool_call_pattern, content, re.DOTALL)
                     
-                    tool_call_start_event = {
-                        "type": "tool_call_start",
-                        "content": f"准备调用工具: {tool_call_raw[:100]}...",
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    logger.debug(f"Yielding tool_call_start event: {tool_call_start_event}")
-                    yield tool_call_start_event
+                    logger.debug(f"Found {len(tool_calls_raw)} tool call(s) in response")
                     
-                    try:
-                        if "python" in tool_call_raw.lower():
-                            # Python代码执行
-                            try:
-                                code_raw = content.split('<tool_call>')[1].split('</tool_call>')[0].split('<code>')[1].split('</code>')[0].strip()
-                                python_exec_event = {
-                                    "type": "python_execution",
-                                    "content": f"执行Python代码:\n```python\n{code_raw}\n```",
-                                    "code": code_raw,
-                                    "timestamp": datetime.now().isoformat()
-                                }
-                                logger.debug(f"Yielding python_execution event: {python_exec_event}")
-                                yield python_exec_event
-                                
-                                result = TOOL_MAP['PythonInterpreter'].call(code_raw)
-                                logger.debug(f"Python execution result: {result[:200]}...")
-                            except Exception as e:
-                                result = f"[Python Interpreter Error]: {str(e)}"
-                                logger.debug(f"Python execution error: {result}")
-                        else:
-                            # 其他工具调用
-                            tool_call = json5.loads(tool_call_raw)
-                            tool_name = tool_call.get('name', '')
-                            tool_args = tool_call.get('arguments', {})
-                            
-                            tool_exec_event = {
-                                "type": "tool_execution",
-                                "content": f"调用工具 {tool_name}，参数: {json.dumps(tool_args, indent=2, ensure_ascii=False)}",
-                                "tool_name": tool_name,
-                                "tool_args": tool_args,
-                                "timestamp": datetime.now().isoformat()
-                            }
-                            logger.debug(f"Yielding tool_execution event: {tool_exec_event}")
-                            yield tool_exec_event
-                            
-                            retrieval_start_time = time.time()
-                            logger.debug(f"Calling tool {tool_name} with args {tool_args}")
-                            
-                            # 如果是检索工具，记录检索关键词
-                            search_keyword = None
-                            if tool_name == "retrieval":
-                                retrieval_round_num += 1  # 增加检索轮次计数
-                                search_keyword = tool_args.get("question", "")
-                                if search_keyword:
-                                    previous_search_keywords.append(search_keyword)
-                                    logger.info(f"🔍 第 {retrieval_round_num} 轮检索，关键词: {search_keyword}")
-                            
-                            result = self.custom_call_tool(tool_name, tool_args)
-                            retrieval_elapsed = time.time() - retrieval_start_time
-                            logger.info(f"⏱️  【时间统计】检索工具执行完成，耗时: {retrieval_elapsed:.2f} 秒")
-                            logger.debug(f"Tool result: {result[:200]}...")
-                            
-                            # 工具调用完成后检查客户端是否断开
-                            if cancelled["value"]:
-                                logger.warning(f"⚠️ 客户端断开，停止工具结果处理")
-                                return
-                            
-                    except Exception as e:
-                        result = f'工具调用错误: {str(e)}'
-                        tool_error_event = {
-                            "type": "tool_error",
-                            "content": result,
+                    # 如果只有一个tool_call，串行处理（保持原有逻辑）
+                    if len(tool_calls_raw) == 1:
+                        tool_call_raw = tool_calls_raw[0].strip()
+                        
+                        tool_call_start_event = {
+                            "type": "tool_call_start",
+                            "content": f"准备调用工具: {tool_call_raw[:100]}...",
                             "timestamp": datetime.now().isoformat()
                         }
-                        logger.debug(f"Yielding tool_error event: {tool_error_event}")
-                        yield tool_error_event
+                        logger.debug(f"Yielding tool_call_start event: {tool_call_start_event}")
+                        yield tool_call_start_event
+                        
+                        try:
+                            if "python" in tool_call_raw.lower():
+                                # Python代码执行
+                                try:
+                                    code_raw = content.split('<tool_call>')[1].split('</tool_call>')[0].split('<code>')[1].split('</code>')[0].strip()
+                                    python_exec_event = {
+                                        "type": "python_execution",
+                                        "content": f"执行Python代码:\n```python\n{code_raw}\n```",
+                                        "code": code_raw,
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    logger.debug(f"Yielding python_execution event: {python_exec_event}")
+                                    yield python_exec_event
+                                    
+                                    result = TOOL_MAP['PythonInterpreter'].call(code_raw)
+                                    logger.debug(f"Python execution result: {result[:200]}...")
+                                except Exception as e:
+                                    result = f"[Python Interpreter Error]: {str(e)}"
+                                    logger.debug(f"Python execution error: {result}")
+                            else:
+                                # 其他工具调用
+                                tool_call = json5.loads(tool_call_raw)
+                                tool_name = tool_call.get('name', '')
+                                tool_args = tool_call.get('arguments', {})
+                                
+                                tool_exec_event = {
+                                    "type": "tool_execution",
+                                    "content": f"调用工具 {tool_name}，参数: {json.dumps(tool_args, indent=2, ensure_ascii=False)}",
+                                    "tool_name": tool_name,
+                                    "tool_args": tool_args,
+                                    "timestamp": datetime.now().isoformat()
+                                }
+                                logger.debug(f"Yielding tool_execution event: {tool_exec_event}")
+                                yield tool_exec_event
+                                
+                                retrieval_start_time = time.time()
+                                logger.debug(f"Calling tool {tool_name} with args {tool_args}")
+                                
+                                # 如果是检索工具，记录检索关键词并自动补充dataset_ids
+                                if tool_name == "retrieval":
+                                    retrieval_round_num += 1
+                                    search_keyword = tool_args.get("question", "")
+                                    if search_keyword:
+                                        previous_search_keywords.append(search_keyword)
+                                        logger.info(f"🔍 第 {retrieval_round_num} 轮检索，关键词: {search_keyword}")
+                                    
+                                    # 自动根据问题判断科室并补充dataset_ids
+                                    provided_dataset_ids = tool_args.get("dataset_ids", [])
+                                    if not provided_dataset_ids or len(provided_dataset_ids) == 0:
+                                        classification_result = classify_question_and_get_dataset_ids(self.user_prompt)
+                                        auto_dataset_ids = classification_result["dataset_ids"]
+                                        tool_args["dataset_ids"] = auto_dataset_ids
+                                        logger.info(f"📋 LLM未提供dataset_ids，自动根据问题判断科室: {classification_result['departments']}, 使用dataset_ids: {auto_dataset_ids}")
+                                    else:
+                                        logger.info(f"📋 LLM已提供dataset_ids: {provided_dataset_ids}")
+                                
+                                result = self.custom_call_tool(tool_name, tool_args)
+                                retrieval_elapsed = time.time() - retrieval_start_time
+                                logger.info(f"⏱️  【时间统计】工具 {tool_name} 执行完成，耗时: {retrieval_elapsed:.2f} 秒")
+                                logger.debug(f"Tool result: {result[:200]}...")
+                                
+                                # 工具调用完成后检查客户端是否断开
+                                if cancelled["value"]:
+                                    logger.warning(f"⚠️ 客户端断开，停止工具结果处理")
+                                    return
+                                
+                        except Exception as e:
+                            result = f'工具调用错误: {str(e)}'
+                            tool_error_event = {
+                                "type": "tool_error",
+                                "content": result,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            logger.debug(f"Yielding tool_error event: {tool_error_event}")
+                            yield tool_error_event
+                        
+                        # 输出工具结果
+                        tool_result_event = {
+                            "type": "tool_result",
+                            "content": f"工具调用完成" + (f"，检索到 {len(result.split('---')) if '---' in result else 1} 条相关文献" if tool_name == "retrieval" else ""),
+                            "result": result,
+                            "timestamp": datetime.now().isoformat(),
+                            "elapsed_time": f"{retrieval_elapsed:.2f}秒" if 'retrieval_elapsed' in locals() else None
+                        }
+                        logger.debug(f"Yielding tool_result event: {tool_result_event}")
+                        yield tool_result_event
+                        
+                        # 设置has_retrieval_tool和result变量
+                        has_retrieval_tool = (tool_name == "retrieval")
+                        if has_retrieval_tool:
+                            all_retrieval_results = [result]
+                        else:
+                            all_retrieval_results = []
                     
-                    # 输出工具结果
-                    tool_result_event = {
-                        "type": "tool_result",
-                        "content": f"检索到 {len(result.split('---')) if '---' in result else 1} 条相关文献",
-                        "result": result,
-                        "timestamp": datetime.now().isoformat(),
-                        "elapsed_time": f"{retrieval_elapsed:.2f}秒" if 'retrieval_elapsed' in locals() else None
-                    }
-                    logger.debug(f"Yielding tool_result event: {tool_result_event}")
-                    yield tool_result_event
+                    else:
+                        # 多个tool_call：并发处理
+                        logger.info(f"🚀 检测到 {len(tool_calls_raw)} 个工具调用，开始并发执行")
+                        
+                        # 发送并发开始事件
+                        concurrent_start_event = {
+                            "type": "concurrent_tool_calls_start",
+                            "content": f"开始并发执行 {len(tool_calls_raw)} 个工具调用",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        yield concurrent_start_event
+                        
+                        # 定义单个工具调用的执行函数
+                        def execute_single_tool(tool_call_idx, tool_call_raw, content_ref):
+                            """执行单个工具调用"""
+                            tool_call_raw = tool_call_raw.strip()
+                            tool_result = {
+                                "index": tool_call_idx,
+                                "success": False,
+                                "result": None,
+                                "tool_name": None,
+                                "error": None,
+                                "elapsed_time": 0
+                            }
+                            
+                            try:
+                                start_time = time.time()
+                                
+                                if "python" in tool_call_raw.lower():
+                                    # Python代码执行
+                                    try:
+                                        code_raw = content_ref.split('<tool_call>')[tool_call_idx + 1].split('</tool_call>')[0].split('<code>')[1].split('</code>')[0].strip()
+                                        result = TOOL_MAP['PythonInterpreter'].call(code_raw)
+                                        tool_result["success"] = True
+                                        tool_result["result"] = result
+                                        tool_result["tool_name"] = "PythonInterpreter"
+                                    except Exception as e:
+                                        tool_result["error"] = f"[Python Interpreter Error]: {str(e)}"
+                                        tool_result["result"] = tool_result["error"]
+                                else:
+                                    # 其他工具调用
+                                    tool_call = json5.loads(tool_call_raw)
+                                    tool_name = tool_call.get('name', '')
+                                    tool_args = tool_call.get('arguments', {})
+                                    tool_result["tool_name"] = tool_name
+                                    tool_result["tool_args"] = tool_args  # 保存tool_args以便后续使用
+                                    
+                                    # 如果是检索工具，自动补充dataset_ids
+                                    if tool_name == "retrieval":
+                                        provided_dataset_ids = tool_args.get("dataset_ids", [])
+                                        if not provided_dataset_ids or len(provided_dataset_ids) == 0:
+                                            classification_result = classify_question_and_get_dataset_ids(self.user_prompt)
+                                            auto_dataset_ids = classification_result["dataset_ids"]
+                                            tool_args["dataset_ids"] = auto_dataset_ids
+                                            logger.debug(f"📋 工具 {tool_call_idx + 1}: LLM未提供dataset_ids，自动判断科室: {classification_result['departments']}")
+                                    
+                                    result = self.custom_call_tool(tool_name, tool_args)
+                                    tool_result["success"] = True
+                                    tool_result["result"] = result
+                                
+                                tool_result["elapsed_time"] = time.time() - start_time
+                                
+                            except Exception as e:
+                                tool_result["error"] = str(e)
+                                tool_result["result"] = f'工具调用错误 ({tool_call_idx + 1}/{len(tool_calls_raw)}): {str(e)}'
+                            
+                            return tool_result
+                        
+                        # 使用ThreadPoolExecutor并发执行所有工具调用
+                        all_retrieval_results = []
+                        has_retrieval_tool = False
+                        tool_results = {}  # 存储所有工具调用结果，按索引排序
+                        
+                        with ThreadPoolExecutor(max_workers=min(len(tool_calls_raw), 5)) as executor:
+                            # 提交所有任务
+                            future_to_index = {
+                                executor.submit(execute_single_tool, idx, tool_call_raw, content): idx
+                                for idx, tool_call_raw in enumerate(tool_calls_raw)
+                            }
+                            
+                            # 按完成顺序处理结果（不等待所有完成）
+                            for future in as_completed(future_to_index):
+                                tool_call_idx = future_to_index[future]
+                                
+                                # 检查客户端是否断开
+                                if cancelled["value"]:
+                                    logger.warning(f"⚠️ 客户端断开，停止并发工具调用")
+                                    break
+                                
+                                try:
+                                    tool_result = future.result()
+                                    tool_results[tool_call_idx] = tool_result
+                                    
+                                    tool_name = tool_result["tool_name"]
+                                    result = tool_result["result"]
+                                    elapsed_time = tool_result["elapsed_time"]
+                                    
+                                    # 发送工具执行事件
+                                    tool_exec_event = {
+                                        "type": "tool_execution",
+                                        "content": f"并发调用工具 {tool_name} ({tool_call_idx + 1}/{len(tool_calls_raw)}) 完成，耗时: {elapsed_time:.2f}秒",
+                                        "tool_name": tool_name,
+                                        "tool_args": tool_result.get("tool_args", {}),
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield tool_exec_event
+                                    
+                                    # 如果是检索工具，记录并累积结果
+                                    if tool_name == "retrieval":
+                                        has_retrieval_tool = True
+                                        # 第一轮多组检索时，只在第一个检索调用时增加检索轮次计数
+                                        if tool_call_idx == 0:
+                                            retrieval_round_num += 1
+                                        
+                                        search_keyword = tool_result.get("tool_args", {}).get("question", "")
+                                        if search_keyword:
+                                            previous_search_keywords.append(search_keyword)
+                                            logger.info(f"🔍 并发检索调用 {tool_call_idx + 1}/{len(tool_calls_raw)} 完成，关键词: {search_keyword}")
+                                        
+                                        all_retrieval_results.append((tool_call_idx, result))
+                                    
+                                    # 发送工具结果事件
+                                    tool_result_event = {
+                                        "type": "tool_result",
+                                        "content": f"工具调用 {tool_call_idx + 1}/{len(tool_calls_raw)} 完成" + (f"，检索到 {len(result.split('---')) if '---' in result else 1} 条相关文献" if tool_name == "retrieval" else ""),
+                                        "result": result,
+                                        "timestamp": datetime.now().isoformat(),
+                                        "elapsed_time": f"{elapsed_time:.2f}秒"
+                                    }
+                                    yield tool_result_event
+                                    
+                                except Exception as e:
+                                    logger.error(f"❌ 工具调用 {tool_call_idx + 1} 执行出错: {str(e)}")
+                                    error_event = {
+                                        "type": "tool_error",
+                                        "content": f"工具调用 {tool_call_idx + 1} 出错: {str(e)}",
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield error_event
+                        
+                        # 按索引顺序排序检索结果
+                        if has_retrieval_tool:
+                            all_retrieval_results.sort(key=lambda x: x[0])
+                            all_retrieval_results = [result for _, result in all_retrieval_results]
+                        
+                        # 发送并发完成事件
+                        concurrent_complete_event = {
+                            "type": "concurrent_tool_calls_complete",
+                            "content": f"并发执行完成，共 {len(tool_calls_raw)} 个工具调用",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        yield concurrent_complete_event
                     
-                    # 如果是检索工具，流式判断结果是否足够回答问题
-                    if tool_name == "retrieval" and result and not result.startswith("[Retrieval] Error"):
+                    # 处理检索工具的结果合并（如果有多个检索调用）
+                    if has_retrieval_tool:
+                        if len(all_retrieval_results) > 1:
+                            # 合并所有检索结果
+                            combined_result = "\n\n--- 检索结果分割线 ---\n\n".join(all_retrieval_results)
+                            result = combined_result
+                            logger.info(f"✅ 合并了 {len(all_retrieval_results)} 组检索结果")
+                            
+                            # 发送合并结果事件
+                            combined_result_event = {
+                                "type": "retrieval_combined",
+                                "content": f"已合并 {len(all_retrieval_results)} 组检索结果",
+                                "result": result,
+                                "timestamp": datetime.now().isoformat()
+                            }
+                            yield combined_result_event
+                        elif len(all_retrieval_results) == 1:
+                            result = all_retrieval_results[0]
+                        else:
+                            # 没有检索结果，使用默认错误消息
+                            result = "[Retrieval] Error: No retrieval results"
+                    
+                    # 如果是检索工具，流式判断结果是否足够回答问题（只在所有检索完成后判断一次）
+                    if has_retrieval_tool and result and not result.startswith("[Retrieval] Error"):
                         judgment_start_time = time.time()
                         judgment_start_event = {
                             "type": "retrieval_judgment",
