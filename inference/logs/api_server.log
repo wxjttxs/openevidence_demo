@@ -1,5 +1,5 @@
-2025-11-26 09:05:35,634 - base.py - 49 - WARNING - Tool `retrieval` already exists! Overwriting with class <class 'tool_retrieval.Retrieval'>.
-2025-11-26 09:05:35 - __main__ - INFO - 日志级别设置为: INFO
+2025-11-26 10:19:23,122 - base.py - 49 - WARNING - Tool `retrieval` already exists! Overwriting with class <class 'tool_retrieval.Retrieval'>.
+2025-11-26 10:19:23 - __main__ - INFO - 日志级别设置为: INFO
 /mnt/data6t/wangxiaojing/tongyi_deepresearch/DeepResearch-openevidence/inference/api_server.py:137: DeprecationWarning: 
         on_event is deprecated, use lifespan event handlers instead.
 
@@ -7,114 +7,91 @@
         [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
         
   @app.on_event("startup")
-2025-11-26 09:05:35 - __main__ - INFO - 🔧 启动配置:
-2025-11-26 09:05:35 - __main__ - INFO -    API端口: 5006
-2025-11-26 09:05:35 - __main__ - INFO -    vLLM端口: 6001
-2025-11-26 09:05:35 - __main__ - INFO -    模型路径: /mnt/data6t/wangxiaojing/models/opensource_models/Alibaba-NLP/Tongyi-DeepResearch-30B-A3B
-2025-11-26 09:05:35 - api_server - INFO - 日志级别设置为: INFO
-INFO:     Started server process [159518]
+2025-11-26 10:19:23 - __main__ - INFO - 🔧 启动配置:
+2025-11-26 10:19:23 - __main__ - INFO -    API端口: 5006
+2025-11-26 10:19:23 - __main__ - INFO -    vLLM端口: 6001
+2025-11-26 10:19:23 - __main__ - INFO -    模型路径: /mnt/data6t/wangxiaojing/models/opensource_models/Alibaba-NLP/Tongyi-DeepResearch-30B-A3B
+2025-11-26 10:19:23 - api_server - INFO - 日志级别设置为: INFO
+INFO:     Started server process [582703]
 INFO:     Waiting for application startup.
-2025-11-26 09:05:35 - api_server - INFO - 🚀 启动Tongyi DeepResearch API服务器...
-2025-11-26 09:05:35 - api_server - INFO - ✅ 推理代理配置模板初始化完成
-2025-11-26 09:05:35 - api_server - INFO - 📡 LLM API地址: https://dashscope.aliyuncs.com/compatible-mode/v1
-2025-11-26 09:05:35 - api_server - INFO - 🤖 模型: qwen3-32b
-2025-11-26 09:05:35 - api_server - INFO - 🔑 API Key (masked): sk-56e045b...76260
-2025-11-26 09:05:35 - api_server - INFO - 🌐 API服务器将在端口 5006 上运行
-2025-11-26 09:05:35 - api_server - INFO - 🔒 并发控制: 最大并发请求数 = 3
-2025-11-26 09:05:35 - api_server - INFO - 💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数
+2025-11-26 10:19:23 - api_server - INFO - 🚀 启动Tongyi DeepResearch API服务器...
+2025-11-26 10:19:23 - api_server - INFO - ✅ 推理代理配置模板初始化完成
+2025-11-26 10:19:23 - api_server - INFO - 📡 LLM API地址: https://dashscope.aliyuncs.com/compatible-mode/v1
+2025-11-26 10:19:23 - api_server - INFO - 🤖 模型: qwen3-32b
+2025-11-26 10:19:23 - api_server - INFO - 🔑 API Key (masked): sk-56e045b...76260
+2025-11-26 10:19:23 - api_server - INFO - 🌐 API服务器将在端口 5006 上运行
+2025-11-26 10:19:23 - api_server - INFO - 🔒 并发控制: 最大并发请求数 = 3
+2025-11-26 10:19:23 - api_server - INFO - 💡 提示: 可通过环境变量 MAX_CONCURRENT_REQUESTS 调整并发数
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:5006 (Press CTRL+C to quit)
-INFO:     10.31.95.28:53643 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:52133 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36250 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:56882 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:4581 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:2950 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:2949 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:4995 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:4996 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:54988 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:54989 - "GET /api/sessions HTTP/1.1" 200 OK
-2025-11-26 09:07:17 - api_server - INFO - 📝 创建新会话: 9a71d75c...
-INFO:     10.31.95.28:54991 - "GET /api/sessions/new HTTP/1.1" 200 OK
-2025-11-26 09:07:17 - api_server - INFO - 📝 创建新会话: 4b8929ae...
-INFO:     10.31.95.28:54992 - "GET /api/sessions/new HTTP/1.1" 200 OK
-INFO:     10.31.95.28:9766 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:17432 - "OPTIONS /chat/stream HTTP/1.1" 200 OK
-INFO:     10.31.95.28:17434 - "POST /chat/stream HTTP/1.1" 200 OK
-2025-11-26 09:07:28 - api_server - INFO - ⏳ [Session 310ee2a7] 等待获取处理槽位... (当前活跃: 0)
-2025-11-26 09:07:28 - api_server - INFO - 🚀 [Session 310ee2a7] 获取槽位成功，开始处理问题: 糖尿病在不同民族之间的差异...
-2025-11-26 09:07:28 - streaming_agent - INFO - === StreamingReactAgent.stream_run START ===
-2025-11-26 09:07:28 - streaming_agent - INFO - 🧠 已启用思考模式 (thinking_budget=1000)
-2025-11-26 09:07:29 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-2025-11-26 09:07:40 - streaming_agent - INFO - ⏱️  【时间统计】思考过程完成，耗时: 11.95 秒
-INFO:     10.31.95.28:49340 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:49345 - "GET /health HTTP/1.1" 200 OK
-2025-11-26 09:07:48 - streaming_agent - INFO - ✅ 流式调用成功 - 思考: 580字, 回答: 582字
-2025-11-26 09:07:48 - streaming_agent - INFO - 🚀 检测到 3 个工具调用，开始并发执行
-2025-11-26 09:07:53 - streaming_agent - INFO - 🔍 并发检索调用 2/3 完成，关键词: 糖尿病 患病率 少数民族
-2025-11-26 09:07:54 - streaming_agent - INFO - 🔍 并发检索调用 1/3 完成，关键词: 糖尿病 民族差异 2型
-2025-11-26 09:07:54 - streaming_agent - INFO - 🔍 并发检索调用 3/3 完成，关键词: 2型糖尿病 遗传易感性 民族
-2025-11-26 09:07:54 - streaming_agent - INFO - ✅ 合并了 3 组检索结果
-2025-11-26 09:07:54 - api_server - WARNING - ⚠️ [Session 310ee2a7] 发送大数据包: 20092 字节, 类型: retrieval_combined
-2025-11-26 09:07:56 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-2025-11-26 09:07:59 - streaming_agent - INFO - ⏱️  【时间统计】检索结果评估完成，耗时: 4.95 秒
-2025-11-26 09:07:59 - answer_system - INFO - 📝 准备答案生成内容: 13259 字符, 16 条检索结果
-2025-11-26 09:07:59 - answer_system - INFO - 🚀 开始调用答案生成API (模型: qwen3-max)
-2025-11-26 09:08:01 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
-2025-11-26 09:08:01 - answer_system - INFO - ⚡ 收到首个token，耗时: 1.62秒
-2025-11-26 09:08:04 - answer_system - INFO - 📚 答案中引用的编号: [5, 6]
-2025-11-26 09:08:04 - answer_system - INFO - 📚 预生成的参考文献ID: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-2025-11-26 09:08:04 - answer_system - INFO - 📚 最终使用的参考文献数量: 2/10
-2025-11-26 09:08:04 - answer_system - INFO - 📚 最终使用的参考文献ID: [5, 6]
-2025-11-26 09:08:04 - streaming_agent - INFO - ⏱️  【时间统计】最终答案生成完成，耗时: 4.94 秒
-2025-11-26 09:08:04 - streaming_agent - INFO - ⏱️  【时间统计】整个流程完成，总耗时: 36.19 秒
-2025-11-26 09:08:04 - streaming_agent - INFO - === StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===
-2025-11-26 09:08:04 - api_server - INFO - 💾 [Session 310ee2a7] 已保存对话历史（用户问题 + 最终答案）
-2025-11-26 09:08:04 - api_server - INFO - ✅ [Session 310ee2a7] 处理完成，释放槽位
-2025-11-26 09:08:04 - api_server - INFO - ✅ [Session 310ee2a7] 会话正常完成
-2025-11-26 09:08:04 - api_server - INFO - 🔓 [Session 310ee2a7] 槽位已释放
-INFO:     10.31.95.28:4561 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:4564 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:16645 - "GET /citation/5 HTTP/1.1" 200 OK
-INFO:     10.31.95.28:54615 - "GET /citation/6 HTTP/1.1" 200 OK
-INFO:     10.31.95.28:7553 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:7556 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:1598 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:1600 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:39312 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:39313 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:57224 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:57228 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:47487 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:47488 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:43558 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:43559 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:34468 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:34469 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:12796 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:12797 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:55443 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:47308 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:31366 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:31368 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:49168 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:49169 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:9589 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:9590 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:40914 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:40915 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:37658 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:37566 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:34329 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:34333 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:57570 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:57572 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:21722 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:21724 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:41953 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:41955 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:37818 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:37820 - "GET /health HTTP/1.1" 200 OK
-INFO:     10.31.95.28:59844 - "GET /api/sessions HTTP/1.1" 200 OK
-INFO:     10.31.95.28:59846 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34282 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:19549 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:38822 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:57063 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:57062 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:2562 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:43252 - "GET /api/sessions HTTP/1.1" 200 OK
+2025-11-26 10:19:46 - api_server - INFO - 📝 创建新会话: f9347752...
+INFO:     10.31.95.28:7994 - "GET /api/sessions/new HTTP/1.1" 200 OK
+2025-11-26 10:19:46 - api_server - INFO - 📝 创建新会话: ae2885b6...
+INFO:     10.31.95.28:13711 - "GET /api/sessions/new HTTP/1.1" 200 OK
+INFO:     10.31.95.28:27282 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:47476 - "POST /chat/stream HTTP/1.1" 200 OK
+2025-11-26 10:19:49 - api_server - INFO - ⏳ [Session a6b043e7] 等待获取处理槽位... (当前活跃: 0)
+2025-11-26 10:19:49 - api_server - INFO - 🚀 [Session a6b043e7] 获取槽位成功，开始处理问题: 男性，52岁。 主诉腹痛、恶心、呕吐1天。 现病史患者1天前突发上腹痛，伴恶心，呕吐胃内容物。呕吐后...
+2025-11-26 10:19:49 - streaming_agent - INFO - === StreamingReactAgent.stream_run START ===
+2025-11-26 10:19:49 - streaming_agent - INFO - 🧠 已启用思考模式 (thinking_budget=1000)
+2025-11-26 10:19:50 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-26 10:20:07 - streaming_agent - INFO - ⏱️  【时间统计】思考过程完成，耗时: 17.76 秒
+INFO:     10.31.95.28:4505 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:4506 - "GET /health HTTP/1.1" 200 OK
+2025-11-26 10:20:22 - streaming_agent - INFO - ✅ 流式调用成功 - 思考: 636字, 回答: 626字
+2025-11-26 10:20:22 - streaming_agent - INFO - 🚀 检测到 3 个工具调用，开始并发执行
+2025-11-26 10:20:25 - streaming_agent - INFO - 🔍 并发检索调用 3/3 完成，关键词: 糖尿病酮症酸中毒
+2025-11-26 10:20:28 - streaming_agent - INFO - 🔍 并发检索调用 1/3 完成，关键词: 糖尿病酮症酸中毒 补液 胰岛素
+2025-11-26 10:20:29 - streaming_agent - INFO - 🔍 并发检索调用 2/3 完成，关键词: 糖尿病酮症酸中毒 血糖控制
+2025-11-26 10:20:29 - streaming_agent - INFO - ✅ 合并了 3 组检索结果
+2025-11-26 10:20:29 - api_server - WARNING - ⚠️ [Session a6b043e7] 发送大数据包: 19056 字节, 类型: retrieval_combined
+2025-11-26 10:20:30 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-26 10:20:36 - streaming_agent - INFO - ⏱️  【时间统计】检索结果评估完成，耗时: 7.24 秒
+2025-11-26 10:20:36 - answer_system - INFO - 📝 准备答案生成内容: 14378 字符, 23 条检索结果
+2025-11-26 10:20:36 - answer_system - INFO - 🚀 开始调用答案生成API (模型: qwen3-max)
+2025-11-26 10:20:40 - httpx - INFO - HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-26 10:20:40 - answer_system - INFO - ⚡ 收到首个token，耗时: 4.47秒
+INFO:     10.31.95.28:7514 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:11213 - "GET /health HTTP/1.1" 200 OK
+2025-11-26 10:21:11 - answer_system - INFO - 📚 答案中引用的ref编号（按首次出现顺序）: ['ref01', 'ref02', 'ref03', 'ref04']
+2025-11-26 10:21:11 - answer_system - INFO - 📝 答案文本替换完成，共替换 8 处
+2025-11-26 10:21:11 - answer_system - INFO - ✅ 替换成功：原始文本长度 1457, 替换后长度 1369
+2025-11-26 10:21:11 - answer_system - INFO - ✅ 成功替换了答案中的ref编号
+2025-11-26 10:21:11 - answer_system - INFO - 📚 最终使用的参考文献数量: 4/23
+2025-11-26 10:21:11 - answer_system - INFO - 📚 ref到retrieval的映射关系: {'ref01': 'retrieval_21', 'ref02': 'retrieval_01', 'ref03': 'retrieval_05', 'ref04': 'retrieval_04'}
+2025-11-26 10:21:11 - answer_system - INFO - 📚 最终使用的参考文献ref编号: ['ref01', 'ref02', 'ref03', 'ref04']
+2025-11-26 10:21:11 - answer_system - INFO - 📚 最终使用的参考文献retrieval编号: ['retrieval_21', 'retrieval_01', 'retrieval_05', 'retrieval_04']
+2025-11-26 10:21:11 - streaming_agent - INFO - ✅ 使用替换后的答案文本（ref编号已替换为数字编号）
+2025-11-26 10:21:11 - streaming_agent - INFO - ⏱️  【时间统计】最终答案生成完成，耗时: 35.15 秒
+2025-11-26 10:21:11 - streaming_agent - INFO - ⏱️  【时间统计】整个流程完成，总耗时: 81.75 秒
+2025-11-26 10:21:11 - streaming_agent - INFO - === StreamingReactAgent.stream_run COMPLETED (FROM RETRIEVAL) ===
+2025-11-26 10:21:11 - api_server - INFO - 💾 [Session a6b043e7] 已保存对话历史（用户问题 + 最终答案）
+2025-11-26 10:21:11 - api_server - INFO - ✅ [Session a6b043e7] 处理完成，释放槽位
+2025-11-26 10:21:11 - api_server - INFO - ✅ [Session a6b043e7] 会话正常完成
+2025-11-26 10:21:11 - api_server - INFO - 🔓 [Session a6b043e7] 槽位已释放
+INFO:     10.31.95.28:11209 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:11210 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:1423 - "GET /citation/1 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:2742 - "GET /citation/2 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:27115 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:27116 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:19492 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:19493 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:50798 - "GET /citation/3 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:8354 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:8355 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:57309 - "GET /citation/2 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:3389 - "GET /citation/4 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:4712 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:4713 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.31.95.28:11345 - "GET /citation/3 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:51188 - "GET /citation/2 HTTP/1.1" 200 OK
+INFO:     10.31.95.28:56385 - "GET /api/sessions HTTP/1.1" 200 OK
+INFO:     10.31.95.28:56386 - "GET /health HTTP/1.1" 200 OK

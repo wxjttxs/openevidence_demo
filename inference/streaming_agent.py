@@ -888,9 +888,15 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             answer_data = stream_event.get("answer_data", {})
                                             logger.debug(f"[DEBUG] Answer streaming completed, citations count: {len(answer_data.get('citations', []))}")
                                             
-                                            # 直接使用 answer 字段内容，不进行格式化
-                                            # accumulated_answer 已包含流式传输的答案主体
-                                            final_answer_content = accumulated_answer.strip() if accumulated_answer else answer_data.get("answer", "")
+                                            # **重要**：优先使用 answer_data 中的 answer 字段（这是替换后的答案）
+                                            # answer_data 中的 answer 已经将 ref01, ref02... 替换为 [1], [2]...
+                                            final_answer_content = answer_data.get("answer", "")
+                                            if not final_answer_content and accumulated_answer:
+                                                # 如果没有替换后的答案，使用流式累积的答案（fallback）
+                                                final_answer_content = accumulated_answer.strip()
+                                                logger.warning(f"⚠️ answer_data中没有answer字段，使用流式累积的答案（可能包含未替换的ref编号）")
+                                            else:
+                                                logger.info(f"✅ 使用替换后的答案文本（ref编号已替换为数字编号）")
                                             
                                             answer_elapsed = time.time() - answer_start_time
                                             logger.info(f"⏱️  【时间统计】最终答案生成完成，耗时: {answer_elapsed:.2f} 秒")
@@ -898,7 +904,7 @@ class StreamingReactAgent(MultiTurnReactAgent):
                                             # 直接传递 answer_complete 事件，让前端立即显示参考文献
                                             answer_complete_event = {
                                                 "type": "answer_complete",
-                                                "content": final_answer_content,  # 只发送答案主体，不含 "参考文献:" 格式化
+                                                "content": final_answer_content.strip(),  # 使用替换后的答案文本
                                                 "answer_data": answer_data,  # 前端从这里提取 citations
                                                 "is_streaming": False,  # 标记流式结束
                                                 "timestamp": datetime.now().isoformat(),
